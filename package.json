@@ -1,0 +1,40 @@
+{
+  "name": "tomtom-plusplus-nav",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nawigacja terenowa TomTom++ z check-listą zadań (Android, Capacitor)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "cap:sync": "cap sync android",
+    "cap:add:android": "cap add android",
+    "cap:open": "cap open android",
+    "apk:debug": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.24",
+    "@capacitor-community/text-to-speech": "^5.0.0",
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/geolocation": "^6.1.0",
+    "@capacitor/preferences": "^6.0.3",
+    "mapbox-gl": "^3.9.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0",
+    "@types/geojson": "^7946.0.14",
+    "@types/mapbox-gl": "^3.4.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}

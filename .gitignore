@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# env / secrets — NIGDY nie commituj kluczy API
+.env
+.env.local
+.env.*.local
+
+# Capacitor / Android build artifacts (platforma android/ jest wersjonowana,
+# ale wytwory buildu i lokalne ustawienia — nie)
+ios/
+.gradle/
+android/app/build/
+android/build/
+android/.gradle/
+android/captured-config/
+*.apk
+*.aab
+local.properties
+
+# editor / OS
+.DS_Store
+*.log
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# test
+coverage/
