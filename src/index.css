@@ -1536,3 +1536,24 @@ h2 { letter-spacing: 0.5px; }
   color: var(--neon); font-weight: 700; letter-spacing: 0.05em;
   background: #05080d;
 }
+
+/* drag & drop kolejności przystanków */
+.drag-handle {
+  flex: none;
+  min-height: 36px;
+  width: 30px;
+  padding: 0;
+  background: transparent !important;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: grab;
+  touch-action: none;
+  border: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.stop-row.dragging {
+  opacity: 0.92;
+  border-color: var(--neon) !important;
+  box-shadow: 0 0 22px rgba(34, 211, 238, 0.4) !important;
+  transform: scale(1.01);
+}

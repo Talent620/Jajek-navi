@@ -1,7 +1,6 @@
-// Lista przystanków: kolejność, kontakt, okno czasowe, pobranie, paczki,
-// notatka „co tu zrobić", zadania check-listy.
-// Zmiana kolejności przyciskami ↑/↓ (niezawodne na dotyku). TODO: drag&drop.
-import { useState } from 'react';
+// Lista przystanków: kolejność (drag&drop ⠿ + przyciski ↑/↓), kontakt, okno
+// czasowe, pobranie, paczki, notatka „co tu zrobić", zadania check-listy.
+import { useEffect, useRef, useState } from 'react';
 import type { Stop } from '../../types';
 import { useTripStore } from '../../store/tripStore';
 import { Collapsible } from '../Collapsible';
@@ -29,6 +28,8 @@ export function StopList({
   onToggleTask,
 }: Props) {
   const ordered = [...stops].sort((a, b) => a.order - b.order);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
 
   const move = (index: number, dir: -1 | 1) => {
     const target = index + dir;
@@ -38,8 +39,45 @@ export function StopList({
     onMove(ids);
   };
 
+  // Drag&drop: śledzimy palec/mysz globalnie i wstawiamy przeciągany wiersz
+  // tam, gdzie aktualnie jest kursor (live reorder).
+  useEffect(() => {
+    if (!dragId) return;
+    const onPointerMove = (e: PointerEvent) => {
+      const cont = containerRef.current;
+      if (!cont) return;
+      const rows = Array.from(cont.querySelectorAll<HTMLElement>('.stop-row[data-id]'));
+      let targetId: string | null = null;
+      for (const row of rows) {
+        const r = row.getBoundingClientRect();
+        if (e.clientY >= r.top && e.clientY <= r.bottom) {
+          targetId = row.dataset.id ?? null;
+          break;
+        }
+      }
+      if (targetId && targetId !== dragId) {
+        const ids = rows.map((r) => r.dataset.id!).filter(Boolean);
+        const from = ids.indexOf(dragId);
+        const to = ids.indexOf(targetId);
+        if (from > -1 && to > -1) {
+          ids.splice(to, 0, ids.splice(from, 1)[0]);
+          onMove(ids);
+        }
+      }
+    };
+    const onUp = () => setDragId(null);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [dragId, onMove]);
+
   return (
-    <div className="stop-list">
+    <div className="stop-list" ref={containerRef}>
       {ordered.length === 0 && <p className="empty">Dodaj pierwszy przystanek powyżej.</p>}
       {ordered.map((stop, i) => (
         <StopRow
@@ -49,6 +87,8 @@ export function StopList({
           eta={etaByStopId?.[stop.id]}
           isFirst={i === 0}
           isLast={i === ordered.length - 1}
+          dragging={dragId === stop.id}
+          onDragStart={() => setDragId(stop.id)}
           onMoveUp={() => move(i, -1)}
           onMoveDown={() => move(i, 1)}
           onRemove={() => onRemove(stop.id)}
@@ -68,6 +108,8 @@ interface RowProps {
   eta?: number;
   isFirst: boolean;
   isLast: boolean;
+  dragging: boolean;
+  onDragStart: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
@@ -83,6 +125,8 @@ function StopRow({
   eta,
   isFirst,
   isLast,
+  dragging,
+  onDragStart,
   onMoveUp,
   onMoveDown,
   onRemove,
@@ -105,8 +149,18 @@ function StopRow({
   const parcels = stop.parcels ?? [];
 
   return (
-    <div className="stop-row">
+    <div className={`stop-row ${dragging ? 'dragging' : ''}`} data-id={stop.id}>
       <div className="stop-row-head">
+        <button
+          className="drag-handle"
+          aria-label="Przeciągnij, by zmienić kolejność"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            onDragStart();
+          }}
+        >
+          ⠿
+        </button>
         <span className="stop-order">{index + 1}</span>
         <div className="stop-main" onClick={() => setExpanded((v) => !v)}>
           <strong>{stop.label}</strong>
