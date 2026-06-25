@@ -9,8 +9,11 @@ import { formatDistance, formatDuration } from '../lib/format';
 import { ShiftBar } from '../components/ShiftBar';
 import { BarcodeScanner } from '../components/nav/BarcodeScanner';
 import { Collapsible } from '../components/Collapsible';
+import { NearbyFinder } from '../components/planner/NearbyFinder';
+import { WeatherChip } from '../components/WeatherChip';
 import { formatMoney } from '../lib/format';
 import { useSettingsStore } from '../store/settingsStore';
+import { geocode } from '../services/mapboxService';
 
 interface Props {
   onStartNavigation: () => void;
@@ -87,6 +90,39 @@ export function PlannerScreen({ onStartNavigation }: Props) {
     }
   };
 
+  // ETA do każdego przystanku (kaskadowo z czasów legów).
+  const etaByStopId: Record<string, number> = {};
+  {
+    const ordered = [...trip.stops].sort((a, b) => a.order - b.order);
+    let acc = 0;
+    ordered.forEach((s, i) => {
+      acc += trip.legs[i]?.durationSeconds ?? 0;
+      etaByStopId[s.id] = acc;
+    });
+  }
+
+  // Dodaj przystanek głosowo (rozpoznawanie mowy → geokodowanie).
+  const voiceAddStop = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      alert('Rozpoznawanie mowy niedostępne na tym urządzeniu.');
+      return;
+    }
+    const rec = new SR();
+    rec.lang = 'pl-PL';
+    rec.interimResults = false;
+    rec.onresult = async (e: any) => {
+      const text = String(e.results[0][0].transcript);
+      const res = await geocode(text, start);
+      if (res[0]) addStop({ label: res[0].label, address: res[0].address, lat: res[0].lat, lng: res[0].lng });
+    };
+    try {
+      rec.start();
+    } catch {
+      /* ignoruj */
+    }
+  };
+
   return (
     <div className="planner-screen">
       <div className="planner-map">
@@ -96,19 +132,37 @@ export function PlannerScreen({ onStartNavigation }: Props) {
       <div className="planner-panel">
         {/* HERO — najważniejsza akcja: dodaj przystanek */}
         <div className="hero-add">
-          <AddressSearch
-            proximity={start}
-            placeholder="➕ Dodaj przystanek — adres lub nazwa klienta"
-            onPick={(r) =>
-              addStop({ label: r.label, address: r.address, lat: r.lat, lng: r.lng })
-            }
-          />
+          <div className="hero-add-row">
+            <AddressSearch
+              proximity={start}
+              placeholder="➕ Dodaj przystanek — adres lub nazwa klienta"
+              onPick={(r) =>
+                addStop({ label: r.label, address: r.address, lat: r.lat, lng: r.lng })
+              }
+            />
+            <button className="btn-mic" onClick={voiceAddStop} aria-label="Dodaj głosowo">
+              🎙
+            </button>
+          </div>
+          {start && (
+            <div className="hero-meta">
+              <WeatherChip at={start} label="start" />
+            </div>
+          )}
         </div>
+
+        <NearbyFinder
+          center={start}
+          onAdd={(poi) =>
+            addStop({ label: poi.name, address: `${poi.name} (OSM)`, lat: poi.lat, lng: poi.lng })
+          }
+        />
 
         {/* Lista przystanków — rdzeń pracy */}
         {trip.stops.length > 0 ? (
           <StopList
             stops={trip.stops}
+            etaByStopId={etaByStopId}
             onMove={reorderStops}
             onRemove={removeStop}
             onNotes={updateStopNotes}

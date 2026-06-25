@@ -12,6 +12,7 @@ import {
   type Tracker,
 } from '../../services/locationService';
 import { getDirections } from '../../services/mapboxService';
+import { haptic, notify } from '../../services/deviceService';
 import { advanceProgress, remainingToEnd } from './progress';
 import { checkOffRoute } from './offroute';
 import { haversine } from './geo';
@@ -86,6 +87,8 @@ export function useNavigationEngine(tripId: string | null) {
           useTripStore.getState().markArrived(st.id);
           nav.openSheet(st.id);
           voiceService.speakNow(`Dotarłeś do: ${st.label}. Sprawdź listę zadań.`);
+          if (useSettingsStore.getState().haptics) void haptic('success');
+          void notify('Dotarłeś na miejsce', `${st.label} — ${st.address}`);
           break;
         }
       }
@@ -107,6 +110,7 @@ export function useNavigationEngine(tripId: string | null) {
       rerouteInFlight.current = true;
       useNavStore.getState().setRerouting(true);
       voiceService.speakNow('Przeliczam trasę');
+      if (useSettingsStore.getState().haptics) void haptic('warning');
       try {
         const trip = useTripStore.getState().current();
         if (!trip) return;

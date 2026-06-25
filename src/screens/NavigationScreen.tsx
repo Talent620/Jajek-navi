@@ -8,8 +8,12 @@ import { useTripStore } from '../store/tripStore';
 import { useNavStore } from '../store/navStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useNavigationEngine } from '../lib/navigation/useNavigationEngine';
+import { Speedometer } from '../components/nav/Speedometer';
+import { WeatherChip } from '../components/WeatherChip';
+import { Confetti } from '../components/Confetti';
 import { buildDayReport } from '../lib/report';
 import { shareText } from '../services/shareService';
+import { keepScreenAwake } from '../services/deviceService';
 
 interface Props {
   onExit: () => void;
@@ -41,12 +45,22 @@ export function NavigationScreen({ onExit }: Props) {
   const mockGps = useSettingsStore((s) => s.mockGps);
   const setMockGps = useSettingsStore((s) => s.setMockGps);
 
+  const keepAwake = useSettingsStore((s) => s.keepAwake);
+
   // Aktywuj silnik nawigacji (efekt, nie podczas renderu).
   useEffect(() => {
     setActive(true);
     return () => setActive(false);
   }, [setActive]);
   useNavigationEngine(trip?.id ?? null);
+
+  // Ekran zawsze włączony podczas nawigacji.
+  useEffect(() => {
+    if (keepAwake) void keepScreenAwake(true);
+    return () => {
+      void keepScreenAwake(false);
+    };
+  }, [keepAwake]);
 
   const ordered = useMemo(
     () => (trip ? [...trip.stops].sort((a, b) => a.order - b.order) : []),
@@ -113,6 +127,12 @@ export function NavigationScreen({ onExit }: Props) {
         rerouting={rerouting}
       />
 
+      {/* HUD: prędkościomierz + pogoda następnego celu */}
+      <div className="nav-hud">
+        <Speedometer speedMps={fix?.speed} />
+        {nextStop && <WeatherChip at={{ lat: nextStop.lat, lng: nextStop.lng }} label={nextStop.label} />}
+      </div>
+
       <div className="nav-top-actions">
         <button className="pill" onClick={exit}>
           ✕ Zakończ
@@ -148,6 +168,7 @@ export function NavigationScreen({ onExit }: Props) {
 
       {allDone && !sheetStop && (
         <div className="trip-complete-banner">
+          <Confetti />
           <span>✅ Wszystkie przystanki rozliczone!</span>
           <div className="complete-actions">
             <button

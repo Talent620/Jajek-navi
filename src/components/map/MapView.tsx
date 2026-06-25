@@ -5,26 +5,42 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Fix, RouteLeg, Stop, LngLat } from '../../types';
 import { MAP_STYLE_URL } from '../../config';
+import { useSettingsStore } from '../../store/settingsStore';
 import { combinedRouteCoords } from '../../lib/navigation/offroute';
 import { SchematicMap } from './SchematicMap';
 
-// Wbudowany ciemny styl rastrowy (OSM via CARTO) — bez kluczy API, jeśli nie
-// podano własnego stylu wektorowego (VITE_MAP_STYLE).
-const DARK_RASTER_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    osmdark: {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '© OpenStreetMap, © CARTO',
-    },
-  },
-  layers: [{ id: 'osmdark', type: 'raster', source: 'osmdark' }],
+// Wbudowane style rastrowe (bez kluczy API): ciemny/jasny (CARTO) i satelita (Esri).
+type MapStyleKey = 'dark' | 'light' | 'satellite';
+
+function rasterStyle(tiles: string[], attribution: string): maplibregl.StyleSpecification {
+  return {
+    version: 8,
+    sources: { base: { type: 'raster', tiles, tileSize: 256, attribution } },
+    layers: [{ id: 'base', type: 'raster', source: 'base' }],
+  };
+}
+
+const STYLES: Record<MapStyleKey, maplibregl.StyleSpecification> = {
+  dark: rasterStyle(
+    [
+      'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    ],
+    '© OpenStreetMap, © CARTO',
+  ),
+  light: rasterStyle(
+    [
+      'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+    ],
+    '© OpenStreetMap, © CARTO',
+  ),
+  satellite: rasterStyle(
+    ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+    'Imagery © Esri',
+  ),
 };
 
 interface Props {
@@ -58,6 +74,41 @@ function LibreMap({
   const startMarkerRef = useRef<maplibregl.Marker | null>(null);
   const loadedRef = useRef(false);
   const flowTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mapStyle = useSettingsStore((s) => s.mapStyle);
+
+  // Dodaje źródło + warstwy trasy (po starcie i po zmianie stylu mapy).
+  const addRouteLayers = (map: maplibregl.Map) => {
+    if (!map.getSource('route')) {
+      map.addSource('route', {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} },
+      });
+    }
+    if (!map.getLayer('route-glow'))
+      map.addLayer({
+        id: 'route-glow',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#22d3ee', 'line-width': 18, 'line-blur': 12, 'line-opacity': 0.45 },
+      });
+    if (!map.getLayer('route-line'))
+      map.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#38bdf8', 'line-width': 6, 'line-opacity': 0.95 },
+      });
+    if (!map.getLayer('route-flow'))
+      map.addLayer({
+        id: 'route-flow',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#e0fbff', 'line-width': 3, 'line-opacity': 0.9, 'line-dasharray': [0, 4, 3] },
+      });
+  };
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -65,7 +116,7 @@ function LibreMap({
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: MAP_STYLE_URL || DARK_RASTER_STYLE,
+        style: MAP_STYLE_URL || STYLES[mapStyle],
         center: start ? [start.lng, start.lat] : [20.4801, 53.7784],
         zoom: 12,
         attributionControl: { compact: true },
@@ -75,47 +126,21 @@ function LibreMap({
       return;
     }
     map.on('error', (e) => {
-      // brak sieci / styl niedostępny — pokaż schemat
       if (!loadedRef.current && e?.error) onFail();
     });
     map.on('load', () => {
       loadedRef.current = true;
-      map.addSource('route', {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} },
-      });
-      // Poświata trasy (szeroka, rozmyta) — efekt „z przyszłości".
-      map.addLayer({
-        id: 'route-glow',
-        type: 'line',
-        source: 'route',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#22d3ee', 'line-width': 18, 'line-blur': 12, 'line-opacity': 0.45 },
-      });
-      // Rdzeń trasy.
-      map.addLayer({
-        id: 'route-line',
-        type: 'line',
-        source: 'route',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#38bdf8', 'line-width': 6, 'line-opacity': 0.95 },
-      });
-      // Animowany „przepływ" energii po trasie.
-      map.addLayer({
-        id: 'route-flow',
-        type: 'line',
-        source: 'route',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: {
-          'line-color': '#e0fbff',
-          'line-width': 3,
-          'line-opacity': 0.9,
-          'line-dasharray': [0, 4, 3],
-        },
-      });
+      addRouteLayers(map);
       startFlowAnimation();
       drawRoute();
       drawMarkers();
+    });
+    // po zmianie stylu (setStyle) warstwy trasy są usuwane — dodaj je ponownie
+    map.on('styledata', () => {
+      if (loadedRef.current) {
+        addRouteLayers(map);
+        drawRoute();
+      }
     });
     mapRef.current = map;
     return () => {
@@ -126,6 +151,14 @@ function LibreMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Zmiana stylu mapy (ciemny/jasny/satelita) bez podanego własnego URL.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current || MAP_STYLE_URL) return;
+    map.setStyle(STYLES[mapStyle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapStyle]);
 
   // Animacja „przepływu" po trasie — cyklicznie zmienia wzór kreski.
   const startFlowAnimation = () => {
@@ -240,5 +273,21 @@ function LibreMap({
     }
   }, [userFix, follow]);
 
-  return <div ref={containerRef} className="map-container" />;
+  const cycleStyle = () => {
+    const order: MapStyleKey[] = ['dark', 'light', 'satellite'];
+    const next = order[(order.indexOf(mapStyle) + 1) % order.length];
+    useSettingsStore.getState().setMapStyle(next);
+  };
+  const styleIcon = mapStyle === 'dark' ? '🌙' : mapStyle === 'light' ? '☀️' : '🛰️';
+
+  return (
+    <div className="map-wrap">
+      <div ref={containerRef} className="map-container" />
+      {!MAP_STYLE_URL && (
+        <button className="map-style-btn" onClick={cycleStyle} aria-label="Zmień styl mapy">
+          {styleIcon}
+        </button>
+      )}
+    </div>
+  );
 }

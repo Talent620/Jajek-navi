@@ -5,9 +5,11 @@ import { useState } from 'react';
 import type { Stop } from '../../types';
 import { useTripStore } from '../../store/tripStore';
 import { Collapsible } from '../Collapsible';
+import { formatDuration } from '../../lib/format';
 
 interface Props {
   stops: Stop[];
+  etaByStopId?: Record<string, number>;
   onMove: (orderedIds: string[]) => void;
   onRemove: (stopId: string) => void;
   onNotes: (stopId: string, notes: string) => void;
@@ -18,6 +20,7 @@ interface Props {
 
 export function StopList({
   stops,
+  etaByStopId,
   onMove,
   onRemove,
   onNotes,
@@ -43,6 +46,7 @@ export function StopList({
           key={stop.id}
           stop={stop}
           index={i}
+          eta={etaByStopId?.[stop.id]}
           isFirst={i === 0}
           isLast={i === ordered.length - 1}
           onMoveUp={() => move(i, -1)}
@@ -61,6 +65,7 @@ export function StopList({
 interface RowProps {
   stop: Stop;
   index: number;
+  eta?: number;
   isFirst: boolean;
   isLast: boolean;
   onMoveUp: () => void;
@@ -75,6 +80,7 @@ interface RowProps {
 function StopRow({
   stop,
   index,
+  eta,
   isFirst,
   isLast,
   onMoveUp,
@@ -109,6 +115,7 @@ function StopRow({
             {stop.tasks.length > 0 && <span className="chip">✓ {done}/{stop.tasks.length}</span>}
             {parcels.length > 0 && <span className="chip">📦 {parcels.length}</span>}
             {stop.codAmount ? <span className="chip cod">💰</span> : null}
+            {eta != null && eta > 0 && <span className="chip eta">⏱ {formatDuration(eta)}</span>}
             {stop.phone && <span className="chip">📞</span>}
             {(stop.windowStart || stop.windowEnd) && (
               <span className="chip">🕒 {stop.windowStart || ''}-{stop.windowEnd || ''}</span>

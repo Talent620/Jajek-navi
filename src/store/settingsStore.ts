@@ -11,6 +11,10 @@ interface SettingsState {
   currency: string; // waluta pobrań (COD)
   driverName: string; // podpis na raportach
   mode: 'courier' | 'passenger'; // tryb pracy busiarza
+  mapStyle: 'dark' | 'light' | 'satellite'; // styl mapy
+  haptics: boolean; // wibracje
+  keepAwake: boolean; // ekran zawsze włączony w nawigacji
+  weather: boolean; // pokazuj pogodę
   setVoiceEnabled: (v: boolean) => void;
   setMockGps: (v: boolean) => void;
   setHighAccuracy: (v: boolean) => void;
@@ -19,6 +23,10 @@ interface SettingsState {
   setCurrency: (v: string) => void;
   setDriverName: (v: string) => void;
   setMode: (v: 'courier' | 'passenger') => void;
+  setMapStyle: (v: 'dark' | 'light' | 'satellite') => void;
+  setHaptics: (v: boolean) => void;
+  setKeepAwake: (v: boolean) => void;
+  setWeather: (v: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -32,6 +40,10 @@ export const useSettingsStore = create<SettingsState>()(
       currency: 'PLN',
       driverName: '',
       mode: 'courier',
+      mapStyle: 'dark',
+      haptics: true,
+      keepAwake: true,
+      weather: true,
       setVoiceEnabled: (voiceEnabled) => set({ voiceEnabled }),
       setMockGps: (mockGps) => set({ mockGps }),
       setHighAccuracy: (highAccuracy) => set({ highAccuracy }),
@@ -40,6 +52,10 @@ export const useSettingsStore = create<SettingsState>()(
       setCurrency: (currency) => set({ currency }),
       setDriverName: (driverName) => set({ driverName }),
       setMode: (mode) => set({ mode }),
+      setMapStyle: (mapStyle) => set({ mapStyle }),
+      setHaptics: (haptics) => set({ haptics }),
+      setKeepAwake: (keepAwake) => set({ keepAwake }),
+      setWeather: (weather) => set({ weather }),
     }),
     {
       name: 'nav-settings',

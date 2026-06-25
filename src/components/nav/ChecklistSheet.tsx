@@ -10,6 +10,7 @@ import { Collapsible } from '../Collapsible';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { callNumber, smsNumber } from '../../services/commsService';
+import { haptic } from '../../services/deviceService';
 import { formatMoney } from '../../lib/format';
 
 interface Props {
@@ -113,6 +114,7 @@ export function ChecklistSheet({
   };
 
   const deliver = () => {
+    void haptic('success');
     setOutcome(stop.id, 'delivered');
     onClose();
     if (hasNext) onNext();

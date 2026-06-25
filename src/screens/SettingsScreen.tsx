@@ -105,6 +105,36 @@ export function SettingsScreen() {
           onChange={s.setHighAccuracy}
         />
         <Toggle
+          label="Wibracje (haptyka)"
+          hint="Potwierdzenie dojazdu, dostawy, zjazdu z trasy"
+          value={s.haptics}
+          onChange={s.setHaptics}
+        />
+        <Toggle
+          label="Ekran zawsze włączony w nawigacji"
+          hint="Nie wygaszaj ekranu podczas jazdy"
+          value={s.keepAwake}
+          onChange={s.setKeepAwake}
+        />
+        <Toggle
+          label="Pogoda w celu"
+          hint="Pokazuj pogodę następnego przystanku (Open-Meteo)"
+          value={s.weather}
+          onChange={s.setWeather}
+        />
+        <label className="field-label">Styl mapy</label>
+        <div className="mode-toggle">
+          {(['dark', 'light', 'satellite'] as const).map((m) => (
+            <button
+              key={m}
+              className={s.mapStyle === m ? 'active' : ''}
+              onClick={() => s.setMapStyle(m)}
+            >
+              {m === 'dark' ? '🌙 Ciemna' : m === 'light' ? '☀️ Jasna' : '🛰️ Satelita'}
+            </button>
+          ))}
+        </div>
+        <Toggle
           label="Cache kafli mapy (offline)"
           hint="Szkielet — pełny offline w planach (TODO)"
           value={s.offlineTiles}

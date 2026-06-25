@@ -1,17 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PlannerScreen } from './screens/PlannerScreen';
 import { NavigationScreen } from './screens/NavigationScreen';
 import { TripsScreen } from './screens/TripsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { UpdateBanner } from './components/UpdateBanner';
+import { OfflineBanner } from './components/OfflineBanner';
+import { initStatusBar } from './services/deviceService';
 
 type Screen = 'planner' | 'navigation' | 'trips' | 'settings';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('planner');
 
+  useEffect(() => {
+    void initStatusBar();
+  }, []);
+
   return (
     <div className="app">
+      <OfflineBanner />
       {screen !== 'navigation' && <UpdateBanner />}
 
       <main className="app-main">

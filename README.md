@@ -37,6 +37,19 @@ narzędzi pracy w terenie:
 - **Raport dnia** rozszerzony o POD, pobrania, paczki, wyniki i podpis kierowcy.
 - **Tryb pracy**: kurier/dostawy lub przewóz osób.
 
+## ✨ Bajery „live / z przyszłości"
+
+- **Prędkościomierz HUD** (neonowy łuk) na ekranie nawigacji.
+- **Pogoda w celu** (Open-Meteo, bez klucza) — ikona + temperatura następnego stopu.
+- **Najbliższe POI** (paliwo / parking / jedzenie / WC / bankomat) z OpenStreetMap
+  (Overpass) — dodaj jednym dotykiem jako przystanek.
+- **Przełącznik stylu mapy**: ciemna / jasna / **satelita** (wszystko bez kluczy).
+- **Wibracje (haptyka)** przy dojeździe, dostawie i zjeździe z trasy.
+- **Ekran zawsze włączony** podczas nawigacji + **powiadomienia** o dojeździe.
+- **Pasek braku internetu**, **ETA do każdego przystanku** na liście.
+- **Dodawanie przystanku głosowo** (🎙), **konfetti** po zakończeniu dnia.
+- Świecąca, animowana trasa + pulsujący marker GPS (radar).
+
 ## Stack
 
 - **React 18 + TypeScript + Vite**
