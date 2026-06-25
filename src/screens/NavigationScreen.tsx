@@ -1,5 +1,5 @@
 // Pełnoekranowa nawigacja: mapa follow + baner manewru + statystyki + check-lista.
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapView } from '../components/map/MapView';
 import { ManeuverBanner } from '../components/nav/ManeuverBanner';
 import { NavStats } from '../components/nav/NavStats';
@@ -9,6 +9,7 @@ import { useNavStore } from '../store/navStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useNavigationEngine } from '../lib/navigation/useNavigationEngine';
 import { Speedometer } from '../components/nav/Speedometer';
+import { DrivingView } from '../components/nav/DrivingView';
 import { WeatherChip } from '../components/WeatherChip';
 import { Confetti } from '../components/Confetti';
 import { buildDayReport } from '../lib/report';
@@ -46,6 +47,7 @@ export function NavigationScreen({ onExit }: Props) {
   const setMockGps = useSettingsStore((s) => s.setMockGps);
 
   const keepAwake = useSettingsStore((s) => s.keepAwake);
+  const [view, setView] = useState<'map' | 'drive'>('map');
 
   // Aktywuj silnik nawigacji (efekt, nie podczas renderu).
   useEffect(() => {
@@ -119,6 +121,11 @@ export function NavigationScreen({ onExit }: Props) {
           follow
           activeStopIndex={activeStopIndex}
         />
+        {view === 'drive' && (
+          <div className="driving-overlay">
+            <DrivingView legs={trip.legs} fix={fix} />
+          </div>
+        )}
       </div>
 
       <ManeuverBanner
@@ -148,6 +155,12 @@ export function NavigationScreen({ onExit }: Props) {
           onClick={() => setMockGps(!mockGps)}
         >
           {mockGps ? '🧪 Symulacja' : '📡 GPS'}
+        </button>
+        <button
+          className={`pill ${view === 'drive' ? 'on' : ''}`}
+          onClick={() => setView(view === 'drive' ? 'map' : 'drive')}
+        >
+          {view === 'drive' ? '🗺 Mapa' : '🚗 Jazda 3D'}
         </button>
       </div>
 

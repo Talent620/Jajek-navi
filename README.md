@@ -39,6 +39,9 @@ narzędzi pracy w terenie:
 
 ## ✨ Bajery „live / z przyszłości"
 
+- **Wizualizacja jazdy 3D** (przełącznik „🚗 Jazda 3D") — widok z perspektywy
+  kierowcy: realna geometria trasy rzutowana w 3D, świecąca wstęga drogi,
+  przepływające chevrony pasa reagujące na prędkość, pulsujący pojazd.
 - **Prędkościomierz HUD** (neonowy łuk) na ekranie nawigacji.
 - **Pogoda w celu** (Open-Meteo, bez klucza) — ikona + temperatura następnego stopu.
 - **Najbliższe POI** (paliwo / parking / jedzenie / WC / bankomat) z OpenStreetMap
