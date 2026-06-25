@@ -1,5 +1,5 @@
 // Ekran planowania trasy: start + przystanki + zadania + optymalizacja.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapView } from '../components/map/MapView';
 import { AddressSearch } from '../components/planner/AddressSearch';
 import { StopList } from '../components/planner/StopList';
@@ -44,10 +44,33 @@ export function PlannerScreen({ onStartNavigation }: Props) {
   const scanParcelByCode = useTripStore((s) => s.scanParcelByCode);
   const currency = useSettingsStore((s) => s.currency);
 
+  const autoStartTried = useRef(false);
+
   // Utwórz trasę jeśli żadnej nie ma.
   useEffect(() => {
     if (!trip) createTrip();
   }, [trip, createTrip]);
+
+  // Automatycznie ustaw punkt startu z GPS (raz), by „wpisz cel → Jedź"
+  // działało od razu, bez ręcznego ustawiania startu.
+  useEffect(() => {
+    if (!trip || trip.startLat != null || autoStartTried.current) return;
+    autoStartTried.current = true;
+    (async () => {
+      try {
+        await requestLocationPermission();
+        const tracker = await startTracking(
+          (fix) => {
+            setStart(fix.lat, fix.lng);
+            tracker.stop();
+          },
+          () => {},
+        );
+      } catch {
+        /* brak GPS — użytkownik może ustawić start ręcznie */
+      }
+    })();
+  }, [trip, setStart]);
 
   if (!trip) return null;
 
@@ -80,13 +103,43 @@ export function PlannerScreen({ onStartNavigation }: Props) {
   );
   const codTotal = trip.stops.reduce((a, s) => a + (s.codAmount ?? 0), 0);
 
-  // „Jedź" = w razie potrzeby zbuduj trasę, potem startuj nawigację.
+  // Jednorazowy odczyt pozycji GPS (Promise).
+  const getOneFix = () =>
+    new Promise<void>(async (resolve) => {
+      try {
+        await requestLocationPermission();
+        const tracker = await startTracking(
+          (fix) => {
+            setStart(fix.lat, fix.lng);
+            tracker.stop();
+            resolve();
+          },
+          () => resolve(),
+        );
+        setTimeout(resolve, 6000); // nie blokuj w nieskończoność
+      } catch {
+        resolve();
+      }
+    });
+
+  // „Jedź" = zapewnij start (GPS) i trasę, potem startuj nawigację.
   const goNavigate = async () => {
-    if (trip.legs.length === 0) await buildRoute();
+    // Dla pojedynczego celu potrzebny jest punkt startu — dobierz z GPS.
+    const cur = useTripStore.getState().current();
+    if (cur && cur.startLat == null && cur.stops.length < 2) {
+      setGpsBusy(true);
+      await getOneFix();
+      setGpsBusy(false);
+    }
+    await buildRoute();
     const t = useTripStore.getState().current();
     if (t && t.legs.length > 0) {
       startTrip();
       onStartNavigation();
+    } else {
+      alert(
+        'Nie udało się wyznaczyć trasy. Ustaw punkt startu (📍 sekcja „Punkt startu") lub dodaj kolejny przystanek.',
+      );
     }
   };
 
