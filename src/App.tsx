@@ -6,6 +6,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { UpdateBanner } from './components/UpdateBanner';
 import { OfflineBanner } from './components/OfflineBanner';
 import { initStatusBar } from './services/deviceService';
+import { ensureLocationPermission } from './services/locationService';
 
 type Screen = 'planner' | 'navigation' | 'trips' | 'settings';
 
@@ -14,6 +15,8 @@ export default function App() {
 
   useEffect(() => {
     void initStatusBar();
+    // Poproś o lokalizację od razu po starcie (systemowe okno zgody).
+    void ensureLocationPermission();
   }, []);
 
   return (

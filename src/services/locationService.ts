@@ -4,55 +4,40 @@
 import type { Fix, RouteLeg } from '../types';
 import { combinedRouteCoords } from '../lib/navigation/offroute';
 import { pointAlongPolyline, polylineLength } from '../lib/navigation/geo';
+// Import STATYCZNY pluginu — gwarantuje, że jest w paczce i dostępny od razu
+// (dynamiczny import potrafił zawieść w WebView → brak okna zgody i lokalizacji).
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 
 export type FixCallback = (fix: Fix) => void;
 
-interface GeolocationPlugin {
-  getCurrentPosition(opts: {
-    enableHighAccuracy?: boolean;
-    timeout?: number;
-    maximumAge?: number;
-  }): Promise<any>;
-  watchPosition(
-    opts: { enableHighAccuracy?: boolean; timeout?: number; maximumAge?: number },
-    cb: (pos: any, err: any) => void,
-  ): Promise<string>;
-  clearWatch(opts: { id: string }): Promise<void>;
-  requestPermissions(): Promise<{ location: string; coarseLocation?: string }>;
-  checkPermissions(): Promise<{ location: string }>;
-}
-
 function isNative(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    (window as any).Capacitor?.isNativePlatform?.() === true
-  );
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
 }
 
-async function loadGeo(): Promise<GeolocationPlugin | null> {
+/** Pełen przebieg uprawnień lokalizacji na urządzeniu (z oknem systemowym). */
+export async function ensureLocationPermission(): Promise<'granted' | 'denied' | 'web'> {
+  if (!isNative()) return 'web';
   try {
-    const mod = await import('@capacitor/geolocation');
-    return mod.Geolocation as unknown as GeolocationPlugin;
+    const cur = await Geolocation.checkPermissions();
+    if (cur.location === 'granted' || cur.coarseLocation === 'granted') return 'granted';
+    const req = await Geolocation.requestPermissions();
+    return req.location === 'granted' || req.coarseLocation === 'granted'
+      ? 'granted'
+      : 'denied';
   } catch {
-    return null;
+    return 'denied';
   }
 }
 
 export async function requestLocationPermission(): Promise<boolean> {
-  if (isNative()) {
-    const geo = await loadGeo();
-    if (geo) {
-      try {
-        const cur = await geo.checkPermissions().catch(() => null);
-        if (cur?.location === 'granted') return true;
-        const res = await geo.requestPermissions();
-        return res.location === 'granted';
-      } catch {
-        return false;
-      }
-    }
-  }
-  return typeof navigator !== 'undefined' && 'geolocation' in navigator;
+  const state = await ensureLocationPermission();
+  if (state === 'web') return typeof navigator !== 'undefined' && 'geolocation' in navigator;
+  return state === 'granted';
 }
 
 /**
@@ -61,16 +46,11 @@ export async function requestLocationPermission(): Promise<boolean> {
  */
 export async function getCurrentFix(timeoutMs = 15000): Promise<Fix | null> {
   // 1) Plugin Capacitor na urządzeniu — pokazuje systemowe okno zgody.
-  const geo = isNative() ? await loadGeo() : null;
-  if (geo) {
-    try {
-      await geo.requestPermissions();
-    } catch {
-      /* mimo to spróbuj odczytać */
-    }
+  if (isNative()) {
+    await ensureLocationPermission();
     for (const hi of [false, true]) {
       try {
-        const pos = await geo.getCurrentPosition({
+        const pos = await Geolocation.getCurrentPosition({
           enableHighAccuracy: hi,
           timeout: timeoutMs,
           maximumAge: 30000,
@@ -129,37 +109,30 @@ export async function startTracking(
   onError?: (e: string) => void,
 ): Promise<Tracker> {
   if (isNative()) {
-    const geo = await loadGeo();
-    if (geo) {
-      try {
-        await geo.requestPermissions();
-      } catch {
-        /* mimo to spróbuj */
-      }
-      const id = await geo.watchPosition(
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 },
-        (pos, err) => {
-          if (err) {
-            onError?.(String(err.message ?? err));
-            return;
-          }
-          if (!pos) return;
-          cb({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            heading: pos.coords.heading,
-            speed: pos.coords.speed,
-            timestamp: pos.timestamp,
-          });
-        },
-      );
-      return {
-        stop() {
-          void geo.clearWatch({ id });
-        },
-      };
-    }
+    await ensureLocationPermission();
+    const id = await Geolocation.watchPosition(
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 },
+      (pos, err) => {
+        if (err) {
+          onError?.(String(err.message ?? err));
+          return;
+        }
+        if (!pos) return;
+        cb({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          heading: pos.coords.heading,
+          speed: pos.coords.speed,
+          timestamp: pos.timestamp,
+        });
+      },
+    );
+    return {
+      stop() {
+        void Geolocation.clearWatch({ id });
+      },
+    };
   }
 
   // Fallback: Web Geolocation API
