@@ -7,20 +7,37 @@ import { UpdateBanner } from './components/UpdateBanner';
 import { OfflineBanner } from './components/OfflineBanner';
 import { initStatusBar } from './services/deviceService';
 import { ensureLocationPermission } from './services/locationService';
+import { useSettingsStore } from './store/settingsStore';
+import { applyAccent } from './lib/themes';
+import { sound } from './services/soundService';
+import { Splash } from './components/Splash';
 
 type Screen = 'planner' | 'navigation' | 'trips' | 'settings';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('planner');
+  const accent = useSettingsStore((s) => s.accent);
+
+  // Zastosuj motyw kolorystyczny (zmienne CSS).
+  useEffect(() => {
+    applyAccent(accent);
+  }, [accent]);
 
   useEffect(() => {
     void initStatusBar();
-    // Poproś o lokalizację od razu po starcie (systemowe okno zgody).
     void ensureLocationPermission();
+    // Odblokuj audio po pierwszym geście użytkownika.
+    const unlock = () => {
+      sound.unlock();
+      window.removeEventListener('pointerdown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock);
+    return () => window.removeEventListener('pointerdown', unlock);
   }, []);
 
   return (
     <div className="app">
+      <Splash />
       <OfflineBanner />
       {screen !== 'navigation' && <UpdateBanner />}
 

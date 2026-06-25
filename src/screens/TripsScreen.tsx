@@ -1,6 +1,6 @@
 // Historia / zarządzanie trasami: lista, statystyki, wybór, usuwanie.
 import { useTripStore } from '../store/tripStore';
-import { formatDistance, formatDuration, formatDateTimePl } from '../lib/format';
+import { formatDistance, formatDuration, formatDateTimePl, formatMoney } from '../lib/format';
 import { buildDayReport } from '../lib/report';
 import { shareText } from '../services/shareService';
 import { useSettingsStore } from '../store/settingsStore';
@@ -30,6 +30,7 @@ export function TripsScreen({ onOpenPlanner }: Props) {
   const setCurrent = useTripStore((s) => s.setCurrent);
   const deleteTrip = useTripStore((s) => s.deleteTrip);
   const createTrip = useTripStore((s) => s.createTrip);
+  const currency = useSettingsStore((s) => s.currency);
 
   return (
     <div className="trips-screen">
@@ -47,6 +48,58 @@ export function TripsScreen({ onOpenPlanner }: Props) {
       </div>
 
       {trips.length === 0 && <p className="empty">Brak tras. Utwórz pierwszą.</p>}
+
+      {trips.length > 0 &&
+        (() => {
+          const totalKm = trips.reduce((a, t) => a + t.totalDistanceMeters, 0);
+          const allStats = trips.map(tripStats);
+          const tasksDone = allStats.reduce((a, s) => a + s.tasksDone, 0);
+          const tasksTotal = allStats.reduce((a, s) => a + s.tasksTotal, 0);
+          const stopsDone = allStats.reduce((a, s) => a + s.stopsDone, 0);
+          const cod = trips.reduce(
+            (a, t) => a + t.stops.reduce((b, s) => b + (s.codCollected ? s.codAmount ?? 0 : 0), 0),
+            0,
+          );
+          const maxKm = Math.max(1, ...trips.map((t) => t.totalDistanceMeters));
+          return (
+            <div className="stats-dash">
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <span className="sc-val">{trips.length}</span>
+                  <span className="sc-lbl">Tras</span>
+                </div>
+                <div className="stat-card">
+                  <span className="sc-val">{formatDistance(totalKm)}</span>
+                  <span className="sc-lbl">Łącznie</span>
+                </div>
+                <div className="stat-card">
+                  <span className="sc-val">{stopsDone}</span>
+                  <span className="sc-lbl">Przystanki</span>
+                </div>
+                <div className="stat-card">
+                  <span className="sc-val">{tasksDone}/{tasksTotal}</span>
+                  <span className="sc-lbl">Zadania</span>
+                </div>
+                {cod > 0 && (
+                  <div className="stat-card wide">
+                    <span className="sc-val">{formatMoney(cod, currency)}</span>
+                    <span className="sc-lbl">Pobrania (suma)</span>
+                  </div>
+                )}
+              </div>
+              <div className="stats-bars">
+                {trips.slice(0, 12).map((t) => (
+                  <div
+                    key={t.id}
+                    className="stats-bar"
+                    style={{ height: `${Math.max(6, (t.totalDistanceMeters / maxKm) * 100)}%` }}
+                    title={`${t.name}: ${formatDistance(t.totalDistanceMeters)}`}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
       <div className="trips-list">
         {trips.map((trip) => {

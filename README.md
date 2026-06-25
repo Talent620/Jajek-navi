@@ -45,6 +45,16 @@ Service Worker (`public/sw.js`) serwuje je potem bez internetu — planujesz onl
 jedziesz offline. Zarządzanie/czyszczenie w Ustawieniach. Działa dla stylu
 ciemnego, jasnego i satelity.
 
+## 💎 „Full wypas" — premium
+
+- **Motywy kolorystyczne** (akcent neonowy): Cyjan / Magenta / Szmaragd /
+  Bursztyn / Plazma — zmieniają cały interfejs ORAZ kolor świata 3D na żywo.
+- **Dźwięki interfejsu** (Web Audio): gong dojazdu, potwierdzenia, re-routing,
+  kliknięcia — subtelne, wyłączalne.
+- **Markowy ekran startowy** (animowany splash z logo).
+- **Pulpit statystyk** w Historii: łączny dystans, przystanki, zadania, suma
+  pobrań + mini-wykres dystansu tras.
+
 ## ✨ Bajery „live / z przyszłości"
 
 - **Pionierski interfejs jazdy 3D (WebGL / three.js + bloom)** — „🚗 Jazda 3D":

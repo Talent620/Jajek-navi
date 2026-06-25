@@ -8,6 +8,7 @@ import {
   type UpdateInfo,
 } from '../services/updateService';
 import { clearTileCache, tileCacheCount } from '../lib/offline/tileCache';
+import { THEMES, type Accent } from '../lib/themes';
 
 function Toggle({
   label,
@@ -93,6 +94,29 @@ export function SettingsScreen() {
             🧍 Przewóz osób
           </button>
         </div>
+      </section>
+
+      <section className="settings-group">
+        <h3>Wygląd i dźwięk</h3>
+        <label className="field-label">Motyw (akcent)</label>
+        <div className="accent-row">
+          {(Object.keys(THEMES) as Accent[]).map((a) => (
+            <button
+              key={a}
+              className={`accent-swatch ${s.accent === a ? 'active' : ''}`}
+              style={{ background: `linear-gradient(135deg, ${THEMES[a].neon}, ${THEMES[a].neon2})` }}
+              onClick={() => s.setAccent(a)}
+              aria-label={THEMES[a].label}
+              title={THEMES[a].label}
+            />
+          ))}
+        </div>
+        <Toggle
+          label="Dźwięki"
+          hint="Gong dojazdu, potwierdzenia, kliknięcia"
+          value={s.sounds}
+          onChange={s.setSounds}
+        />
       </section>
 
       <section className="settings-group">

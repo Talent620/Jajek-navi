@@ -11,6 +11,7 @@ import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { callNumber, smsNumber } from '../../services/commsService';
 import { haptic } from '../../services/deviceService';
+import { sound } from '../../services/soundService';
 import { formatMoney } from '../../lib/format';
 
 interface Props {
@@ -115,6 +116,7 @@ export function ChecklistSheet({
 
   const deliver = () => {
     void haptic('success');
+    sound.success();
     setOutcome(stop.id, 'delivered');
     onClose();
     if (hasNext) onNext();

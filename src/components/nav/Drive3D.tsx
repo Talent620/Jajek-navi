@@ -11,6 +11,8 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import type { Fix, RouteLeg, Stop } from '../../types';
 import { combinedRouteCoords } from '../../lib/navigation/offroute';
 import { haversine, distanceToPolyline } from '../../lib/navigation/geo';
+import { accentThreeColor } from '../../lib/themes';
+import { useSettingsStore } from '../../store/settingsStore';
 
 interface Props {
   legs: RouteLeg[];
@@ -22,7 +24,8 @@ interface Props {
 
 const R = 6371000;
 const D2R = Math.PI / 180;
-const CYAN = new THREE.Color(0x22d3ee);
+// Kolor akcentu (motyw) — ustawiany przy montażu komponentu.
+let CYAN = new THREE.Color(0x22d3ee);
 
 function labelSprite(text: string, color: string): THREE.Sprite {
   const c = document.createElement('canvas');
@@ -63,6 +66,13 @@ export function Drive3D({ legs, fix, stops, activeStopIndex, onFail }: Props) {
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+
+    // Kolor wg aktywnego motywu.
+    try {
+      CYAN = new THREE.Color(accentThreeColor(useSettingsStore.getState().accent));
+    } catch {
+      CYAN = new THREE.Color(0x22d3ee);
+    }
 
     let renderer: THREE.WebGLRenderer;
     let composer: EffectComposer;

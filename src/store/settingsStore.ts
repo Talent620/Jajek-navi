@@ -15,6 +15,8 @@ interface SettingsState {
   haptics: boolean; // wibracje
   keepAwake: boolean; // ekran zawsze włączony w nawigacji
   weather: boolean; // pokazuj pogodę
+  accent: 'cyan' | 'magenta' | 'emerald' | 'amber' | 'plasma'; // motyw kolorystyczny
+  sounds: boolean; // dźwięki interfejsu / gong dojazdu
   setVoiceEnabled: (v: boolean) => void;
   setMockGps: (v: boolean) => void;
   setHighAccuracy: (v: boolean) => void;
@@ -27,6 +29,8 @@ interface SettingsState {
   setHaptics: (v: boolean) => void;
   setKeepAwake: (v: boolean) => void;
   setWeather: (v: boolean) => void;
+  setAccent: (v: 'cyan' | 'magenta' | 'emerald' | 'amber' | 'plasma') => void;
+  setSounds: (v: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -44,6 +48,8 @@ export const useSettingsStore = create<SettingsState>()(
       haptics: true,
       keepAwake: true,
       weather: true,
+      accent: 'cyan',
+      sounds: true,
       setVoiceEnabled: (voiceEnabled) => set({ voiceEnabled }),
       setMockGps: (mockGps) => set({ mockGps }),
       setHighAccuracy: (highAccuracy) => set({ highAccuracy }),
@@ -56,6 +62,8 @@ export const useSettingsStore = create<SettingsState>()(
       setHaptics: (haptics) => set({ haptics }),
       setKeepAwake: (keepAwake) => set({ keepAwake }),
       setWeather: (weather) => set({ weather }),
+      setAccent: (accent) => set({ accent }),
+      setSounds: (sounds) => set({ sounds }),
     }),
     {
       name: 'nav-settings',
