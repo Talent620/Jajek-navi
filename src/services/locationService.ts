@@ -8,6 +8,11 @@ import { pointAlongPolyline, polylineLength } from '../lib/navigation/geo';
 export type FixCallback = (fix: Fix) => void;
 
 interface GeolocationPlugin {
+  getCurrentPosition(opts: {
+    enableHighAccuracy?: boolean;
+    timeout?: number;
+    maximumAge?: number;
+  }): Promise<any>;
   watchPosition(
     opts: { enableHighAccuracy?: boolean; timeout?: number; maximumAge?: number },
     cb: (pos: any, err: any) => void,
@@ -48,6 +53,73 @@ export async function requestLocationPermission(): Promise<boolean> {
   }
   // Przeglądarka: uprawnienia są pytane przy pierwszym watchPosition.
   return typeof navigator !== 'undefined' && 'geolocation' in navigator;
+}
+
+/**
+ * Jednorazowy odczyt pozycji — najpewniejszy sposób na „moją lokalizację".
+ * Próbuje: niska dokładność (szybko) → wysoka dokładność. Zwraca null gdy się nie uda.
+ */
+export async function getCurrentFix(timeoutMs = 15000): Promise<Fix | null> {
+  // 1) Natywny plugin Capacitor
+  if (isNative()) {
+    const geo = await loadGeo();
+    if (geo) {
+      try {
+        await geo.requestPermissions();
+      } catch {
+        /* mimo to spróbuj odczytać */
+      }
+      for (const hi of [false, true]) {
+        try {
+          const pos = await geo.getCurrentPosition({
+            enableHighAccuracy: hi,
+            timeout: timeoutMs,
+            maximumAge: 30000,
+          });
+          if (pos?.coords) {
+            return {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+              heading: pos.coords.heading,
+              speed: pos.coords.speed,
+              timestamp: pos.timestamp,
+            };
+          }
+        } catch {
+          /* spróbuj kolejny wariant */
+        }
+      }
+      return null;
+    }
+  }
+  // 2) Web Geolocation
+  if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+    return new Promise<Fix | null>((resolve) => {
+      let done = false;
+      const finish = (f: Fix | null) => {
+        if (!done) {
+          done = true;
+          resolve(f);
+        }
+      };
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          finish({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            heading: pos.coords.heading,
+            speed: pos.coords.speed,
+            timestamp: pos.timestamp,
+          }),
+        () => finish(null),
+        { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 },
+      );
+      setTimeout(() => finish(null), timeoutMs + 1000);
+    });
+  }
+  return null;
 }
 
 export interface Tracker {

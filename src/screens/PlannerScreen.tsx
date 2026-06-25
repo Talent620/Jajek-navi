@@ -4,7 +4,7 @@ import { MapView } from '../components/map/MapView';
 import { AddressSearch } from '../components/planner/AddressSearch';
 import { StopList } from '../components/planner/StopList';
 import { useTripStore } from '../store/tripStore';
-import { requestLocationPermission, startTracking } from '../services/locationService';
+import { getCurrentFix } from '../services/locationService';
 import { formatDistance, formatDuration } from '../lib/format';
 import { ShiftBar } from '../components/ShiftBar';
 import { BarcodeScanner } from '../components/nav/BarcodeScanner';
@@ -71,18 +71,8 @@ export function PlannerScreen({ onStartNavigation }: Props) {
     if (!trip || trip.startLat != null || autoStartTried.current) return;
     autoStartTried.current = true;
     (async () => {
-      try {
-        await requestLocationPermission();
-        const tracker = await startTracking(
-          (fix) => {
-            setStart(fix.lat, fix.lng);
-            tracker.stop();
-          },
-          () => {},
-        );
-      } catch {
-        /* brak GPS — użytkownik może ustawić start ręcznie */
-      }
+      const fix = await getCurrentFix();
+      if (fix) setStart(fix.lat, fix.lng);
     })();
   }, [trip, setStart]);
 
@@ -95,23 +85,14 @@ export function PlannerScreen({ onStartNavigation }: Props) {
 
   const useCurrentLocation = async () => {
     setGpsBusy(true);
-    try {
-      await requestLocationPermission();
-      const tracker = await startTracking(
-        (fix) => {
-          setStart(fix.lat, fix.lng);
-          tracker.stop();
-          setGpsBusy(false);
-        },
-        () => setGpsBusy(false),
+    const fix = await getCurrentFix();
+    setGpsBusy(false);
+    if (fix) {
+      setStart(fix.lat, fix.lng);
+    } else {
+      alert(
+        'Nie udało się pobrać lokalizacji.\n\n• Włącz lokalizację (GPS) w telefonie\n• Zezwól aplikacji na dostęp do lokalizacji\n• albo wpisz adres startu poniżej.',
       );
-      // Bezpiecznik — nie zostawiaj „Pobieram GPS…" w nieskończoność.
-      setTimeout(() => {
-        tracker.stop();
-        setGpsBusy(false);
-      }, 12000);
-    } catch {
-      setGpsBusy(false);
     }
   };
 
@@ -122,24 +103,11 @@ export function PlannerScreen({ onStartNavigation }: Props) {
   );
   const codTotal = trip.stops.reduce((a, s) => a + (s.codAmount ?? 0), 0);
 
-  // Jednorazowy odczyt pozycji GPS (Promise).
-  const getOneFix = () =>
-    new Promise<void>(async (resolve) => {
-      try {
-        await requestLocationPermission();
-        const tracker = await startTracking(
-          (fix) => {
-            setStart(fix.lat, fix.lng);
-            tracker.stop();
-            resolve();
-          },
-          () => resolve(),
-        );
-        setTimeout(resolve, 6000); // nie blokuj w nieskończoność
-      } catch {
-        resolve();
-      }
-    });
+  // Jednorazowy odczyt pozycji GPS dla startu.
+  const getOneFix = async () => {
+    const fix = await getCurrentFix();
+    if (fix) setStart(fix.lat, fix.lng);
+  };
 
   // „Jedź" = zapewnij start (GPS) i trasę, potem startuj nawigację.
   const goNavigate = async () => {
