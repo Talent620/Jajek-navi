@@ -51,7 +51,8 @@ export function PlannerScreen({ onStartNavigation }: Props) {
     if (!t || t.legs.length === 0) return;
     setOffline({ done: 0, total: 0 });
     const { prefetchRouteTiles } = await import('../lib/offline/tileCache');
-    const res = await prefetchRouteTiles(t.legs, mapStyle, (done, total) =>
+    const { resolveMapStyle } = await import('../components/map/MapView');
+    const res = await prefetchRouteTiles(t.legs, resolveMapStyle(mapStyle), (done, total) =>
       setOffline({ done, total }),
     );
     setOffline({ done: res.ok, total: res.total, done2: true });

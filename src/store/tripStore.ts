@@ -78,6 +78,9 @@ interface TripState {
   // --- cykl życia ---
   startTrip: () => void;
   completeTrip: () => void;
+
+  // --- backup / przywracanie ---
+  importTrips: (incoming: Trip[], mode: 'merge' | 'replace') => number;
 }
 
 function recomputeCompletion(stop: Stop): Stop {
@@ -514,6 +517,22 @@ export const useTripStore = create<TripState>()(
             completedAt: new Date().toISOString(),
           })),
         ),
+
+      importTrips: (incoming, mode) => {
+        const valid = incoming.filter(
+          (t) => t && typeof t.id === 'string' && Array.isArray(t.stops),
+        );
+        if (valid.length === 0) return 0;
+        set((s) => {
+          if (mode === 'replace') {
+            return { trips: valid, currentTripId: valid[0]?.id ?? null };
+          }
+          const map = new Map(s.trips.map((t) => [t.id, t]));
+          for (const t of valid) map.set(t.id, t); // import nadpisuje przy kolizji id
+          return { trips: [...map.values()] };
+        });
+        return valid.length;
+      },
     }),
     {
       name: 'nav-trips',

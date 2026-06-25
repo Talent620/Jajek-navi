@@ -1646,3 +1646,6 @@ h2 { letter-spacing: 0.5px; }
 .coach-step strong { display: block; }
 .coach-step span { color: var(--muted); font-size: 14px; }
 .coach-card .btn-primary.big { width: 100%; }
+
+.mode-toggle.wrap { flex-wrap: wrap; }
+.mode-toggle.wrap button { flex: 1 1 45%; }

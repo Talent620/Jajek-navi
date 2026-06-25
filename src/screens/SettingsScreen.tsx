@@ -9,6 +9,9 @@ import {
 } from '../services/updateService';
 import { clearTileCache, tileCacheCount } from '../lib/offline/tileCache';
 import { THEMES, type Accent } from '../lib/themes';
+import { useTripStore } from '../store/tripStore';
+import { serializeTrips, parseTrips } from '../lib/backup';
+import { shareText } from '../services/shareService';
 
 function Toggle({
   label,
@@ -47,6 +50,37 @@ export function SettingsScreen() {
   const clearOffline = async () => {
     await clearTileCache();
     setTileCount(0);
+  };
+
+  const exportData = () => {
+    const trips = useTripStore.getState().trips;
+    if (trips.length === 0) {
+      alert('Brak tras do wyeksportowania.');
+      return;
+    }
+    void shareText('Jajek Navi — backup tras', serializeTrips(trips));
+  };
+
+  const importData = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const parsed = parseTrips(String(reader.result ?? ''));
+        if (!parsed || parsed.length === 0) {
+          alert('Nieprawidłowy plik backupu.');
+          return;
+        }
+        const n = useTripStore.getState().importTrips(parsed, 'merge');
+        alert(`Zaimportowano ${n} tras(y).`);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
 
   const check = async () => {
@@ -169,14 +203,20 @@ export function SettingsScreen() {
           onChange={s.setWeather}
         />
         <label className="field-label">Styl mapy</label>
-        <div className="mode-toggle">
-          {(['dark', 'light', 'satellite'] as const).map((m) => (
+        <div className="mode-toggle wrap">
+          {(['dark', 'light', 'satellite', 'auto'] as const).map((m) => (
             <button
               key={m}
               className={s.mapStyle === m ? 'active' : ''}
               onClick={() => s.setMapStyle(m)}
             >
-              {m === 'dark' ? '🌙 Ciemna' : m === 'light' ? '☀️ Jasna' : '🛰️ Satelita'}
+              {m === 'dark'
+                ? '🌙 Ciemna'
+                : m === 'light'
+                  ? '☀️ Jasna'
+                  : m === 'satellite'
+                    ? '🛰️ Satelita'
+                    : '🌗 Auto'}
             </button>
           ))}
         </div>
@@ -189,6 +229,20 @@ export function SettingsScreen() {
         </button>
         <p className="setting-hint">
           Mapę offline pobierzesz na ekranie planowania („⬇ Pobierz mapę offline dla trasy").
+        </p>
+      </section>
+
+      <section className="settings-group">
+        <h3>Dane (backup)</h3>
+        <button className="btn-secondary" onClick={exportData}>
+          📤 Eksportuj trasy (backup)
+        </button>
+        <button className="btn-secondary" onClick={importData}>
+          📥 Importuj z pliku
+        </button>
+        <p className="setting-hint">
+          Eksport zapisuje wszystkie trasy (z zadaniami i POD) jako plik JSON.
+          Import scala je z bieżącymi.
         </p>
       </section>
 

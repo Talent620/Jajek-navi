@@ -45,6 +45,14 @@ Service Worker (`public/sw.js`) serwuje je potem bez internetu — planujesz onl
 jedziesz offline. Zarządzanie/czyszczenie w Ustawieniach. Działa dla stylu
 ciemnego, jasnego i satelity.
 
+## 🧰 Dane i komfort
+
+- **Backup/przywracanie tras** (Ustawienia → Dane): eksport wszystkich tras
+  (z zadaniami i POD) do JSON + import z pliku (scalanie).
+- **Mapa dzień/noc (Auto)**: styl mapy przełącza się jasny/ciemny wg godziny.
+- **Samouczek pierwszego uruchomienia** + **jakość 3D** (Auto/Wysoka/Oszczędna).
+- **Markowa ikona** aplikacji (adaptive icon).
+
 ## 💎 „Full wypas" — premium
 
 - **Motywy kolorystyczne** (akcent neonowy): Cyjan / Magenta / Szmaragd /

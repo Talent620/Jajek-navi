@@ -11,6 +11,16 @@ import { SchematicMap } from './SchematicMap';
 
 // Wbudowane style rastrowe (bez kluczy API): ciemny/jasny (CARTO) i satelita (Esri).
 type MapStyleKey = 'dark' | 'light' | 'satellite';
+type MapStyleSetting = MapStyleKey | 'auto';
+
+/** Rozwiązuje styl ustawienia (w tym „auto" = jasny w dzień, ciemny w nocy). */
+export function resolveMapStyle(s: MapStyleSetting): MapStyleKey {
+  if (s === 'auto') {
+    const h = new Date().getHours();
+    return h >= 7 && h < 19 ? 'light' : 'dark';
+  }
+  return s;
+}
 
 function rasterStyle(tiles: string[], attribution: string): maplibregl.StyleSpecification {
   return {
@@ -109,7 +119,7 @@ function LibreMap({
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: MAP_STYLE_URL || STYLES[mapStyle],
+        style: MAP_STYLE_URL || STYLES[resolveMapStyle(mapStyle)],
         center: start ? [start.lng, start.lat] : [20.4801, 53.7784],
         zoom: 12,
         attributionControl: { compact: true },
@@ -156,7 +166,7 @@ function LibreMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loadedRef.current || MAP_STYLE_URL) return;
-    map.setStyle(STYLES[mapStyle]);
+    map.setStyle(STYLES[resolveMapStyle(mapStyle)]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapStyle]);
 
@@ -282,11 +292,11 @@ function LibreMap({
   }, [userFix, follow]);
 
   const cycleStyle = () => {
-    const order: MapStyleKey[] = ['dark', 'light', 'satellite'];
+    const order: MapStyleSetting[] = ['dark', 'light', 'satellite', 'auto'];
     const next = order[(order.indexOf(mapStyle) + 1) % order.length];
     useSettingsStore.getState().setMapStyle(next);
   };
-  const styleIcon = mapStyle === 'dark' ? '🌙' : mapStyle === 'light' ? '☀️' : '🛰️';
+  const styleIcon = mapStyle === 'dark' ? '🌙' : mapStyle === 'light' ? '☀️' : mapStyle === 'satellite' ? '🛰️' : '🌗';
 
   return (
     <div className="map-wrap">

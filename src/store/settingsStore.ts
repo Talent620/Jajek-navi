@@ -11,7 +11,7 @@ interface SettingsState {
   currency: string; // waluta pobrań (COD)
   driverName: string; // podpis na raportach
   mode: 'courier' | 'passenger'; // tryb pracy busiarza
-  mapStyle: 'dark' | 'light' | 'satellite'; // styl mapy
+  mapStyle: 'dark' | 'light' | 'satellite' | 'auto'; // styl mapy ('auto' = dzień/noc)
   haptics: boolean; // wibracje
   keepAwake: boolean; // ekran zawsze włączony w nawigacji
   weather: boolean; // pokazuj pogodę
@@ -27,7 +27,7 @@ interface SettingsState {
   setCurrency: (v: string) => void;
   setDriverName: (v: string) => void;
   setMode: (v: 'courier' | 'passenger') => void;
-  setMapStyle: (v: 'dark' | 'light' | 'satellite') => void;
+  setMapStyle: (v: 'dark' | 'light' | 'satellite' | 'auto') => void;
   setHaptics: (v: boolean) => void;
   setKeepAwake: (v: boolean) => void;
   setWeather: (v: boolean) => void;
