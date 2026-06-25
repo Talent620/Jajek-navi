@@ -153,17 +153,35 @@ export function Drive3D({ legs, fix, stops, activeStopIndex, onFail }: Props) {
       pulses.push(m);
     }
 
+    // Zwalnia geometrie/materiały/tekstury z grupy przed jej wyczyszczeniem
+    // (inaczej każdy re-routing zostawia wyciek w GPU).
+    const disposeGroup = (g: THREE.Group) => {
+      g.traverse((o) => {
+        const any = o as any;
+        any.geometry?.dispose?.();
+        const m = any.material;
+        if (m) (Array.isArray(m) ? m : [m]).forEach((mm: any) => {
+          mm.map?.dispose?.();
+          mm.dispose?.();
+        });
+      });
+      g.clear();
+    };
+
     const buildRoute = () => {
       const data = dataRef.current;
       const coords = combinedRouteCoords(data.legs);
-      const key = `${coords.length}:${coords[0]?.join(',') ?? ''}`;
+      const first = coords[0]?.join(',') ?? '';
+      const last = coords[coords.length - 1]?.join(',') ?? '';
+      const mid = coords[Math.floor(coords.length / 2)]?.join(',') ?? '';
+      const key = `${coords.length}:${first}|${mid}|${last}`;
       if (key === routeKey) return;
       routeKey = key;
       coordsCache = coords;
 
-      // wyczyść poprzednie
-      routeGroup.clear();
-      pylonGroup.clear();
+      // wyczyść poprzednie (z dispose)
+      disposeGroup(routeGroup);
+      disposeGroup(pylonGroup);
       curve = null;
       totalLen = 0;
       if (coords.length < 2) return;

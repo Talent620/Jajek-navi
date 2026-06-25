@@ -1,5 +1,6 @@
 // Pogoda w punkcie — Open-Meteo (darmowe, bez klucza, bez limitów dla MVP).
 import type { LngLat } from '../types';
+import { fetchT } from '../lib/http';
 
 export interface Weather {
   tempC: number;
@@ -33,16 +34,16 @@ export async function getWeather(at: LngLat): Promise<Weather | null> {
       wind_speed_unit: 'kmh',
       timezone: 'auto',
     });
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+    const res = await fetchT(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
     if (!res.ok) return null;
     const data = await res.json();
     const cur = data.current;
-    if (!cur) return null;
+    if (!cur || cur.temperature_2m == null) return null;
     const code = cur.weather_code ?? 0;
     const { icon, desc } = weatherCodeToPl(code);
     return {
       tempC: Math.round(cur.temperature_2m),
-      windKmh: Math.round(cur.wind_speed_10m),
+      windKmh: Math.round(cur.wind_speed_10m ?? 0),
       code,
       icon,
       desc,

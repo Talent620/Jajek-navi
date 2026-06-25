@@ -118,8 +118,15 @@ function LibreMap({
       onFail();
       return;
     }
-    map.on('error', (e) => {
-      if (!loadedRef.current && e?.error) onFail();
+    map.on('error', (e: any) => {
+      // Przełącz na fallback tylko przy błędzie inicjalizacji stylu/WebGL,
+      // NIE przy błędach pojedynczych kafli (offline/404) — te są przejściowe.
+      if (loadedRef.current) return;
+      if (e?.sourceId) return; // błąd źródła/kafla — ignoruj
+      const msg = String(e?.error?.message ?? '').toLowerCase();
+      if (msg.includes('webgl') || msg.includes('style') || msg.includes('context')) {
+        onFail();
+      }
     });
     map.on('load', () => {
       loadedRef.current = true;
@@ -230,9 +237,13 @@ function LibreMap({
         const el = document.createElement('div');
         el.className = 'map-start-marker';
         el.textContent = 'S';
-        startMarkerRef.current = new maplibregl.Marker({ element: el }).addTo(map);
+        // setLngLat MUSI być przed addTo — inaczej MapLibre czyta undefined.
+        startMarkerRef.current = new maplibregl.Marker({ element: el })
+          .setLngLat([start.lng, start.lat])
+          .addTo(map);
+      } else {
+        startMarkerRef.current.setLngLat([start.lng, start.lat]);
       }
-      startMarkerRef.current.setLngLat([start.lng, start.lat]);
     }
   };
 
@@ -249,9 +260,13 @@ function LibreMap({
       const el = document.createElement('div');
       el.className = 'map-user-marker';
       el.innerHTML = '<div class="arrow"></div>';
-      userMarkerRef.current = new maplibregl.Marker({ element: el }).addTo(map);
+      // setLngLat przed addTo (inaczej MapLibre rzuca undefined.lng).
+      userMarkerRef.current = new maplibregl.Marker({ element: el })
+        .setLngLat([userFix.lng, userFix.lat])
+        .addTo(map);
+    } else {
+      userMarkerRef.current.setLngLat([userFix.lng, userFix.lat]);
     }
-    userMarkerRef.current.setLngLat([userFix.lng, userFix.lat]);
     const arrow = userMarkerRef.current.getElement().querySelector('.arrow') as HTMLElement | null;
     if (arrow) arrow.style.transform = `rotate(${userFix.heading ?? 0}deg)`;
 

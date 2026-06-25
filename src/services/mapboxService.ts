@@ -8,24 +8,13 @@ import type { LineString } from 'geojson';
 import type { ManeuverStep, RouteLeg, Stop, LngLat } from '../types';
 import { OSRM_URL, NOMINATIM_URL } from '../config';
 import { haversine, bearing } from '../lib/navigation/geo';
+import { fetchT } from '../lib/http';
 
 export interface GeocodeResult {
   label: string;
   address: string;
   lat: number;
   lng: number;
-}
-
-/** fetch z twardym timeoutem — bez tego wolne/niedostępne serwery OSM
- *  zawieszają zapytanie w nieskończoność i trasa „się nie ładuje". */
-async function fetchT(url: string, opts: RequestInit = {}, ms = 9000): Promise<Response> {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-  try {
-    return await fetch(url, { ...opts, signal: ctrl.signal });
-  } finally {
-    clearTimeout(id);
-  }
 }
 
 /* --------------------------- GEOCODING (Nominatim) --------------------------- */
@@ -56,18 +45,20 @@ export async function geocode(
     });
     if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
     const data = await res.json();
-    return (data as any[]).map((f) => {
-      const a = f.address ?? {};
-      const street = [a.road, a.house_number].filter(Boolean).join(' ');
-      const city = a.city || a.town || a.village || a.municipality || a.county || '';
-      const label = f.name || street || city || String(f.display_name).split(',')[0];
-      return {
-        label,
-        address: f.display_name as string,
-        lat: parseFloat(f.lat),
-        lng: parseFloat(f.lon),
-      };
-    });
+    return (data as any[])
+      .map((f) => {
+        const a = f.address ?? {};
+        const street = [a.road, a.house_number].filter(Boolean).join(' ');
+        const city = a.city || a.town || a.village || a.municipality || a.county || '';
+        const label = f.name || street || city || String(f.display_name).split(',')[0];
+        return {
+          label,
+          address: f.display_name as string,
+          lat: parseFloat(f.lat),
+          lng: parseFloat(f.lon),
+        };
+      })
+      .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng));
   } catch {
     return mockGeocode(query);
   }

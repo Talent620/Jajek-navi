@@ -100,7 +100,8 @@ export function useNavigationEngine(tripId: string | null) {
       // 5) Detekcja zjazdu z trasy → re-routing
       const offResult = checkOffRoute(nav.offRoute, rawFix, trip.legs);
       nav.setOffRoute(offResult.state);
-      nav.setOffRouteDistance(offResult.distance);
+      // Aktualizuj wskaźnik tylko przy realnym pomiarze (bez migotania na słabym GPS).
+      if (offResult.measured) nav.setOffRouteDistance(offResult.distance);
       if (offResult.shouldReroute && !rerouteInFlight.current) {
         void reroute(rawFix);
       }

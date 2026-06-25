@@ -19,6 +19,8 @@ export interface OffRouteResult {
   shouldReroute: boolean;
   /** Czy aktualny pomiar jest poza trasą. */
   offRoute: boolean;
+  /** Czy dokonano realnego pomiaru (false = pominięto, np. słaba dokładność). */
+  measured: boolean;
 }
 
 /** Zwraca współrzędne wszystkich legów połączone w jedną listę [lng,lat]. */
@@ -47,12 +49,12 @@ export function checkOffRoute(
 ): OffRouteResult {
   const coords = combinedRouteCoords(legs);
   if (coords.length < 2) {
-    return { state, distance: 0, shouldReroute: false, offRoute: false };
+    return { state, distance: 0, shouldReroute: false, offRoute: false, measured: false };
   }
 
   // Odrzucaj pomiary o słabej dokładności — nie fałszuj off-route (sekcja 7).
   if (fix.accuracy != null && fix.accuracy > NAV.maxAcceptableAccuracy) {
-    return { state, distance: 0, shouldReroute: false, offRoute: false };
+    return { state, distance: 0, shouldReroute: false, offRoute: false, measured: false };
   }
 
   const { distance } = distanceToPolyline(fix, coords);
@@ -66,5 +68,6 @@ export function checkOffRoute(
     distance,
     shouldReroute,
     offRoute,
+    measured: true,
   };
 }

@@ -2,6 +2,7 @@
 // Aplikacja odpytuje publiczne API Release'ów, porównuje wersję i — jeśli jest
 // nowsza — pozwala pobrać i zainstalować nowy APK (sideload self-update).
 import { APP_VERSION, UPDATE_REPO } from '../config';
+import { fetchT } from '../lib/http';
 
 export interface UpdateInfo {
   available: boolean;
@@ -30,7 +31,7 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
     latestVersion: APP_VERSION,
   };
   try {
-    const res = await fetch(
+    const res = await fetchT(
       `https://api.github.com/repos/${UPDATE_REPO}/releases/latest`,
       { headers: { Accept: 'application/vnd.github+json' } },
     );

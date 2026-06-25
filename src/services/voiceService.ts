@@ -40,6 +40,7 @@ class VoiceService {
   private lastSpoken = '';
   private lastSpokenAt = 0;
   private enabled = true;
+  private epoch = 0; // rośnie przy clear()/speakNow() — unieważnia starsze pompy
 
   setEnabled(on: boolean) {
     this.enabled = on;
@@ -63,11 +64,13 @@ class VoiceService {
   /** Komunikat priorytetowy — czyści kolejkę i mówi natychmiast. */
   speakNow(text: string) {
     if (!this.enabled || !text.trim()) return;
+    this.epoch++; // unieważnij ewentualną trwającą pompę
     this.queue = [text];
     void this.stopCurrent().then(() => this.pump());
   }
 
   clear() {
+    this.epoch++;
     this.queue = [];
     void this.stopCurrent();
   }
@@ -88,6 +91,7 @@ class VoiceService {
     if (this.speaking) return;
     const text = this.queue.shift();
     if (!text) return;
+    const myEpoch = this.epoch;
     this.speaking = true;
     this.lastSpoken = text;
     this.lastSpokenAt = Date.now();
@@ -97,7 +101,8 @@ class VoiceService {
       /* ignoruj błędy TTS */
     } finally {
       this.speaking = false;
-      if (this.queue.length > 0) void this.pump();
+      // Jeśli w międzyczasie clear()/speakNow() unieważniło tę pompę — nie kontynuuj.
+      if (myEpoch === this.epoch && this.queue.length > 0) void this.pump();
     }
   }
 

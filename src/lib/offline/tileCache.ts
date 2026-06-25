@@ -42,11 +42,15 @@ export function routeTileUrls(
   const set = new Set<string>();
   if (coords.length >= 2) {
     for (const z of zooms) {
+      const n = 2 ** z;
       for (const [lng, lat] of coords) {
         const t = lngLatToTile(lng, lat, z);
         for (let dx = -1; dx <= 1; dx++)
           for (let dy = -1; dy <= 1; dy++) {
-            set.add(tileUrl(style, z, t.x + dx, t.y + dy));
+            const x = t.x + dx;
+            const y = t.y + dy;
+            if (x < 0 || y < 0 || x >= n || y >= n) continue; // poza zakresem
+            set.add(tileUrl(style, z, x, y));
           }
       }
     }
@@ -83,11 +87,18 @@ export async function prefetchRouteTiles(
       const u = urls[idx++];
       try {
         const existing = await cache.match(u);
-        if (!existing) {
-          const res = await fetch(u, { mode: 'no-cors' });
-          await cache.put(u, res);
+        if (existing) {
+          ok++;
+        } else {
+          // CORS (nie no-cors), by móc sprawdzić status i nie cache'ować 404.
+          const res = await fetch(u, { mode: 'cors' });
+          if (res.ok) {
+            await cache.put(u, res);
+            ok++;
+          } else {
+            failed++;
+          }
         }
-        ok++;
       } catch {
         failed++;
       }

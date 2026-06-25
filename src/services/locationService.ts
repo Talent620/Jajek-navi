@@ -53,7 +53,8 @@ export async function getCurrentFix(timeoutMs = 15000): Promise<Fix | null> {
         const pos = await Geolocation.getCurrentPosition({
           enableHighAccuracy: hi,
           timeout: timeoutMs,
-          maximumAge: 30000,
+          // na próbie wysokiej dokładności wymuś świeży pomiar (nie cache)
+          maximumAge: hi ? 0 : 30000,
         });
         if (pos?.coords) {
           return {
@@ -171,6 +172,9 @@ export function startMockDrive(
   opts?: { speedMps?: number; intervalMs?: number; onFinish?: () => void },
 ): Tracker {
   const coords = combinedRouteCoords(legs);
+  if (coords.length < 2) {
+    return { stop() {} }; // brak trasy — nic nie symuluj
+  }
   const total = polylineLength(coords);
   const speed = opts?.speedMps ?? 13.9; // ~50 km/h
   const interval = opts?.intervalMs ?? 1000;

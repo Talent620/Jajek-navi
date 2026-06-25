@@ -8,10 +8,19 @@ import {
   pointsFromStops,
 } from '../services/mapboxService';
 
+let _uidCounter = 0;
 function uid(prefix = ''): string {
-  // Deterministyczny- enough identyfikator bez zależności zewnętrznych.
-  const rnd = Math.floor(performance.now() * 1000) % 1_000_000;
-  return `${prefix}${Date.now().toString(36)}${rnd.toString(36)}`;
+  // Preferuj crypto.randomUUID (dostępne w WebView/przeglądarce), z fallbackiem
+  // na czas + licznik monotoniczny — bez ryzyka kolizji przy szybkim dodawaniu.
+  try {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return `${prefix}${(crypto as Crypto).randomUUID()}`;
+    }
+  } catch {
+    /* fallback */
+  }
+  _uidCounter = (_uidCounter + 1) % 1_000_000;
+  return `${prefix}${Date.now().toString(36)}${_uidCounter.toString(36)}`;
 }
 
 interface TripState {
@@ -328,7 +337,8 @@ export const useTripStore = create<TripState>()(
             ...t,
             stops: t.stops.map((st) =>
               st.id === stopId
-                ? {
+                ? // recomputeCompletion ustawia completed=true dla 'delivered'
+                  recomputeCompletion({
                     ...st,
                     outcome,
                     outcomeReason,
@@ -338,7 +348,7 @@ export const useTripStore = create<TripState>()(
                       outcome === 'failed'
                         ? outcomeReason || 'Doręczenie nieudane'
                         : st.skipReason,
-                  }
+                  })
                 : st,
             ),
           })),

@@ -129,9 +129,14 @@ describe('offroute.checkOffRoute', () => {
     r = checkOffRoute(state, far, legs);
     expect(r.shouldReroute).toBe(true);
   });
-  it('słaba dokładność jest ignorowana', () => {
+  it('słaba dokładność jest ignorowana (measured=false)', () => {
     const r = checkOffRoute(initialOffRoute(), { lat: 53.01, lng: 20.01, accuracy: 200 }, legs);
     expect(r.offRoute).toBe(false);
+    expect(r.measured).toBe(false);
+  });
+  it('dobry pomiar ma measured=true', () => {
+    const r = checkOffRoute(initialOffRoute(), { lat: 53.01, lng: 20.0, accuracy: 5 }, legs);
+    expect(r.measured).toBe(true);
   });
 });
 

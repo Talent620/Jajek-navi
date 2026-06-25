@@ -15,6 +15,10 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
   const [supported, setSupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastCode = useRef<string>('');
+  // Trzymaj najświeższy callback w refie — efekt kamery ma puste deps, więc
+  // strumień nie restartuje się przy każdym renderze rodzica (migotanie/prompt).
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
 
   useEffect(() => {
     const Detector = (window as any).BarcodeDetector;
@@ -48,7 +52,7 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
               const value = codes[0].rawValue as string;
               if (value && value !== lastCode.current) {
                 lastCode.current = value;
-                onDetected(value);
+                onDetectedRef.current(value);
               }
             }
           } catch {
@@ -69,7 +73,8 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [onDetected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="scanner-overlay" role="dialog" aria-label="Skaner kodów">

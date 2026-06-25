@@ -2,6 +2,7 @@
 // (OpenStreetMap, bez klucza). Przydatne dla kierowcy: najbliższa stacja itp.
 import type { LngLat } from '../types';
 import { haversine } from '../lib/navigation/geo';
+import { fetchT } from '../lib/http';
 
 export type PoiKind = 'fuel' | 'parking' | 'food' | 'toilets' | 'atm';
 
@@ -42,18 +43,19 @@ export async function findNearby(
 ): Promise<Poi[]> {
   try {
     const q = KIND_QUERY[kind]
-      .replace('RADIUS', String(radiusMeters))
-      .replace('LAT', String(center.lat))
-      .replace('LNG', String(center.lng));
-    const body = `[out:json][timeout:15];(${q});out body 20;`;
-    const res = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body,
-    });
+      .replace(/RADIUS/g, String(radiusMeters))
+      .replace(/LAT/g, String(center.lat))
+      .replace(/LNG/g, String(center.lng));
+    const body = `[out:json][timeout:15];(${q});out body 30;`;
+    const res = await fetchT(
+      'https://overpass-api.de/api/interpreter',
+      { method: 'POST', body },
+      20000,
+    );
     if (!res.ok) return [];
     const data = await res.json();
     const pois: Poi[] = (data.elements ?? [])
-      .filter((e: any) => e.lat && e.lon)
+      .filter((e: any) => e.lat != null && e.lon != null)
       .map((e: any): Poi => ({
         id: String(e.id),
         name: e.tags?.name || e.tags?.brand || KIND_LABEL[kind].label,
