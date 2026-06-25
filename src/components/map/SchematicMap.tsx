@@ -67,7 +67,16 @@ export function SchematicMap({ legs, stops, start, userFix, activeStopIndex }: P
       role="img"
       aria-label="Schematyczna mapa trasy (tryb bez tokena Mapbox)"
     >
-      <rect x={0} y={0} width={W} height={H} fill="#0b0f14" />
+      <defs>
+        <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="6" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <rect x={0} y={0} width={W} height={H} fill="#05080d" />
       {/* siatka */}
       {Array.from({ length: 11 }).map((_, i) => (
         <line
@@ -96,11 +105,12 @@ export function SchematicMap({ legs, stops, start, userFix, activeStopIndex }: P
         <path
           d={routePath}
           fill="none"
-          stroke="#3b82f6"
+          stroke="#22d3ee"
           strokeWidth={8}
           strokeLinejoin="round"
           strokeLinecap="round"
-          opacity={0.9}
+          opacity={0.95}
+          filter="url(#neonGlow)"
         />
       )}
 
@@ -140,9 +150,14 @@ export function SchematicMap({ legs, stops, start, userFix, activeStopIndex }: P
             const { x, y } = project(userFix);
             const rot = userFix.heading ?? 0;
             return (
-              <g transform={`translate(${x},${y}) rotate(${rot})`}>
-                <circle r={26} fill="#2563eb" opacity={0.25} />
-                <path d="M0,-20 L13,16 L0,8 L-13,16 Z" fill="#60a5fa" stroke="#0b0f14" strokeWidth={2} />
+              <g transform={`translate(${x},${y})`}>
+                <circle r={18} fill="#22d3ee" opacity={0.3}>
+                  <animate attributeName="r" values="14;40;14" dur="1.8s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.5;0;0.5" dur="1.8s" repeatCount="indefinite" />
+                </circle>
+                <g transform={`rotate(${rot})`} filter="url(#neonGlow)">
+                  <path d="M0,-20 L13,16 L0,8 L-13,16 Z" fill="#22d3ee" stroke="#04121c" strokeWidth={2} />
+                </g>
               </g>
             );
           })()}

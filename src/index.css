@@ -1132,3 +1132,264 @@ select {
 .collapsible-body .btn-skip { width: 100%; font-weight: 700; }
 .collapsible-body .outcome.partial { color: var(--amber); }
 .collapsible-body .outcome.failed { color: var(--red); }
+
+/* ============================================================
+   MOTYW „Z PRZYSZŁOŚCI" — neon glass / HUD / live
+   (warstwa nadpisująca — kolejność CSS wygrywa)
+   ============================================================ */
+:root {
+  --neon: #22d3ee;       /* cyan */
+  --neon-2: #38bdf8;     /* sky */
+  --neon-3: #a855f7;     /* violet */
+  --neon-green: #34d399;
+  --hud: rgba(11, 18, 28, 0.62);
+  --hud-border: rgba(56, 189, 248, 0.28);
+  --hud-glow: 0 8px 32px rgba(2, 8, 20, 0.55), 0 0 0 1px rgba(56,189,248,0.06);
+}
+
+/* tło — żywa „aurora" z dryfującymi światłami + delikatna siatka */
+body {
+  background: #05080d;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  background:
+    radial-gradient(40% 35% at 20% 15%, rgba(34, 211, 238, 0.16), transparent 60%),
+    radial-gradient(45% 40% at 85% 20%, rgba(168, 85, 247, 0.14), transparent 60%),
+    radial-gradient(50% 45% at 50% 95%, rgba(56, 189, 248, 0.12), transparent 60%);
+  animation: auroraDrift 18s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 50% 30%, #000 30%, transparent 80%);
+  pointer-events: none;
+}
+@keyframes auroraDrift {
+  0% { transform: translate3d(-3%, -2%, 0) scale(1); }
+  100% { transform: translate3d(3%, 2%, 0) scale(1.1); }
+}
+
+/* szkło dla paneli */
+.collapsible,
+.stop-row,
+.trip-card,
+.settings-group,
+.route-summary,
+.load-summary,
+.pod-section,
+.pod-contact,
+.pod-window,
+.pod-cod,
+.modal-card,
+.shift-bar,
+.error-banner,
+.nav-stats,
+.maneuver-banner {
+  background: var(--hud) !important;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--hud-border);
+  box-shadow: var(--hud-glow);
+}
+
+/* pola tekstowe — neon focus */
+input, textarea, select {
+  background: rgba(8, 14, 22, 0.7) !important;
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--neon) !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18), 0 0 18px rgba(34, 211, 238, 0.25);
+}
+.hero-add input {
+  border: 1.5px solid rgba(34, 211, 238, 0.55) !important;
+  box-shadow: 0 0 22px rgba(34, 211, 238, 0.18);
+}
+
+/* przyciski akcji — neon gradient + poświata */
+.btn-primary,
+.btn-primary.big,
+.btn-deliver,
+.btn-next,
+.tab-bar button.active {
+  background: linear-gradient(135deg, var(--neon), var(--neon-2)) !important;
+  color: #021019 !important;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.45), inset 0 1px 0 rgba(255,255,255,0.35);
+  transition: transform 0.08s ease, box-shadow 0.2s ease, filter 0.2s;
+}
+.btn-primary:active,
+.btn-primary.big:active,
+.btn-deliver:active,
+.btn-next:active {
+  transform: translateY(1px) scale(0.99);
+  filter: brightness(1.1);
+}
+.btn-deliver {
+  background: linear-gradient(135deg, #34d399, #22d3ee) !important;
+  box-shadow: 0 0 26px rgba(52, 211, 153, 0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+  animation: liveGlow 2.4s ease-in-out infinite;
+}
+@keyframes liveGlow {
+  0%,100% { box-shadow: 0 0 22px rgba(52, 211, 153, 0.4), inset 0 1px 0 rgba(255,255,255,0.3); }
+  50% { box-shadow: 0 0 38px rgba(52, 211, 153, 0.7), inset 0 1px 0 rgba(255,255,255,0.4); }
+}
+.btn-secondary, .pill, .btn-shift, .btn-scan, .btn-voice, .btn-gps {
+  background: rgba(13, 22, 33, 0.7) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  backdrop-filter: blur(8px);
+}
+.btn-call, .btn-call.round {
+  background: linear-gradient(135deg, var(--neon-green), #22d3ee) !important;
+  color: #04231a !important;
+  box-shadow: 0 0 18px rgba(52, 211, 153, 0.5);
+}
+
+/* pasek akcji plannera — glass dock */
+.planner-actionbar {
+  background: rgba(7, 12, 20, 0.75) !important;
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--hud-border);
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+}
+
+/* dolny pasek zakładek — świecący dock */
+.tab-bar {
+  background: rgba(7, 12, 20, 0.8) !important;
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--hud-border);
+}
+.tab-bar button.active {
+  background: transparent !important;
+  color: var(--neon) !important;
+  text-shadow: 0 0 12px rgba(34, 211, 238, 0.7);
+  box-shadow: inset 0 2px 0 var(--neon);
+}
+
+/* HUD — baner manewru */
+.maneuver-banner {
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.18), var(--hud-glow);
+}
+.maneuver-icon {
+  color: var(--neon);
+  text-shadow: 0 0 16px rgba(34, 211, 238, 0.8);
+}
+.maneuver-distance {
+  color: var(--neon) !important;
+  text-shadow: 0 0 14px rgba(34, 211, 238, 0.7);
+  letter-spacing: 0.5px;
+}
+.maneuver-banner.rerouting { border-color: var(--neon-3); }
+
+/* statystyki nawigacji — neonowe cyfry */
+.nav-stats { gap: 1px; }
+.nav-stats .stat { background: rgba(8, 14, 22, 0.72) !important; }
+.stat-value {
+  color: #eaffff;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+.stat-label { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
+
+/* markery */
+.map-stop-marker {
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.6), 0 2px 6px rgba(0,0,0,0.6);
+  border-color: #04121c;
+}
+.stop-order {
+  background: linear-gradient(135deg, var(--neon), var(--neon-2));
+  color: #021019;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
+}
+
+/* żywy marker GPS — pulsujące pierścienie radaru */
+.map-user-marker { position: relative; }
+.map-user-marker::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 60%;
+  width: 14px; height: 14px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(34, 211, 238, 0.35);
+  animation: radarPulse 1.8s ease-out infinite;
+}
+@keyframes radarPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.55); opacity: 1; }
+  100% { box-shadow: 0 0 0 28px rgba(34, 211, 238, 0); opacity: 0; }
+}
+.map-user-marker .arrow {
+  border-bottom-color: var(--neon) !important;
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.9));
+}
+
+/* check-lista jako szklany HUD wysuwany */
+.checklist-sheet {
+  background: rgba(8, 13, 21, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  border-top: 1px solid rgba(34, 211, 238, 0.4);
+  box-shadow: 0 -10px 50px rgba(0,0,0,0.6), 0 0 60px rgba(34,211,238,0.08);
+}
+.sheet-badge { box-shadow: 0 0 12px rgba(34,211,238,0.4); }
+
+/* update banner — neon */
+.update-banner {
+  background: linear-gradient(90deg, rgba(34,211,238,0.18), rgba(168,85,247,0.18)) !important;
+  border-bottom: 1px solid var(--hud-border);
+  backdrop-filter: blur(12px);
+}
+
+/* przełącznik — neon ON */
+.switch.on { background: linear-gradient(135deg, var(--neon), var(--neon-2)); box-shadow: 0 0 14px rgba(34,211,238,0.5); }
+
+/* badge / chips */
+.collapsible-badge { background: linear-gradient(135deg, var(--neon), var(--neon-2)); color: #021019; box-shadow: 0 0 10px rgba(34,211,238,0.5); }
+.chip { border-color: rgba(56,189,248,0.25); }
+
+/* skaner — animowana linia skanująca */
+.scanner-frame { border-color: var(--neon) !important; box-shadow: 0 0 24px rgba(34,211,238,0.5), 0 0 0 9999px rgba(0,0,0,0.45); }
+.scanner-frame::after {
+  content: '';
+  position: absolute;
+  left: 4%; right: 4%;
+  height: 2px;
+  top: 0;
+  background: linear-gradient(90deg, transparent, var(--neon), transparent);
+  box-shadow: 0 0 14px var(--neon);
+  animation: scanSweep 2.2s ease-in-out infinite;
+}
+@keyframes scanSweep { 0%{top:2%;} 50%{top:96%;} 100%{top:2%;} }
+
+/* nagłówki — lekko „techniczne" */
+.planner-section h3, .settings-group h3, .collapsible-title { letter-spacing: 0.02em; }
+h2 { letter-spacing: 0.5px; }
+
+/* żywy wskaźnik „LIVE" przy aktywnej nawigacji (kropka) */
+.shift-bar.active::after,
+.maneuver-banner::after {
+  content: '';
+  position: absolute;
+  top: 8px; right: 10px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow: 0 0 10px var(--neon-green);
+  animation: liveDot 1.4s ease-in-out infinite;
+}
+.maneuver-banner { position: relative; }
+@keyframes liveDot { 0%,100%{opacity:1;} 50%{opacity:0.25;} }

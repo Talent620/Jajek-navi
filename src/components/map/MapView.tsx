@@ -57,6 +57,7 @@ function LibreMap({
   const stopMarkersRef = useRef<maplibregl.Marker[]>([]);
   const startMarkerRef = useRef<maplibregl.Marker | null>(null);
   const loadedRef = useRef(false);
+  const flowTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -83,24 +84,80 @@ function LibreMap({
         type: 'geojson',
         data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} },
       });
+      // Poświata trasy (szeroka, rozmyta) — efekt „z przyszłości".
+      map.addLayer({
+        id: 'route-glow',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#22d3ee', 'line-width': 18, 'line-blur': 12, 'line-opacity': 0.45 },
+      });
+      // Rdzeń trasy.
       map.addLayer({
         id: 'route-line',
         type: 'line',
         source: 'route',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#3b82f6', 'line-width': 6, 'line-opacity': 0.9 },
+        paint: { 'line-color': '#38bdf8', 'line-width': 6, 'line-opacity': 0.95 },
       });
+      // Animowany „przepływ" energii po trasie.
+      map.addLayer({
+        id: 'route-flow',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#e0fbff',
+          'line-width': 3,
+          'line-opacity': 0.9,
+          'line-dasharray': [0, 4, 3],
+        },
+      });
+      startFlowAnimation();
       drawRoute();
       drawMarkers();
     });
     mapRef.current = map;
     return () => {
+      if (flowTimerRef.current) clearInterval(flowTimerRef.current);
       map.remove();
       mapRef.current = null;
       loadedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Animacja „przepływu" po trasie — cyklicznie zmienia wzór kreski.
+  const startFlowAnimation = () => {
+    const dashSeq = [
+      [0, 4, 3],
+      [0.5, 4, 2.5],
+      [1, 4, 2],
+      [1.5, 4, 1.5],
+      [2, 4, 1],
+      [2.5, 4, 0.5],
+      [3, 4, 0],
+      [0, 0.5, 3, 3.5],
+      [0, 1, 3, 3],
+      [0, 1.5, 3, 2.5],
+      [0, 2, 3, 2],
+      [0, 2.5, 3, 1.5],
+      [0, 3, 3, 1],
+      [0, 3.5, 3, 0.5],
+    ];
+    let step = 0;
+    if (flowTimerRef.current) clearInterval(flowTimerRef.current);
+    flowTimerRef.current = setInterval(() => {
+      const map = mapRef.current;
+      if (!map || !loadedRef.current || !map.getLayer('route-flow')) return;
+      step = (step + 1) % dashSeq.length;
+      try {
+        map.setPaintProperty('route-flow', 'line-dasharray', dashSeq[step]);
+      } catch {
+        /* warstwa chwilowo niedostępna */
+      }
+    }, 90);
+  };
 
   const drawRoute = () => {
     const map = mapRef.current;
