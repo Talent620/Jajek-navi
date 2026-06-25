@@ -1015,3 +1015,120 @@ select {
 .mode-toggle button { flex: 1; background: var(--bg); border: 1px solid var(--line); }
 .mode-toggle button.active { border-color: var(--primary); color: var(--primary-2); }
 .settings-group input { margin-bottom: 8px; }
+
+/* ---------------- Progressive disclosure (Collapsible) ---------------- */
+.collapsible {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  margin: 8px 0;
+  overflow: hidden;
+}
+.collapsible-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border-radius: 0;
+  text-align: left;
+  min-height: 52px;
+}
+.collapsible-icon { font-size: 18px; flex: none; }
+.collapsible-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 600;
+}
+.collapsible-sub {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.collapsible-badge {
+  flex: none;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 20px;
+  padding: 1px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.collapsible-chevron { color: var(--muted); flex: none; }
+.collapsible-body {
+  padding: 4px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+}
+.collapsible-body > button { width: 100%; }
+
+/* ---------------- Planner: hero + action bar ---------------- */
+.hero-add { margin-bottom: 12px; }
+.hero-add input {
+  font-size: 17px;
+  padding: 16px 14px;
+  border: 2px solid var(--primary);
+}
+.hero-hint {
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
+.planner-panel { padding-bottom: 12px; }
+.planner-actionbar {
+  flex: none;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px calc(10px + var(--safe-bottom));
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+}
+.planner-actionbar .btn-secondary { flex: 1; }
+.btn-primary.big {
+  flex: 2;
+  font-size: 18px;
+  min-height: 56px;
+}
+
+/* ---------------- At-stop: big deliver + quick call ---------------- */
+.btn-deliver {
+  width: 100%;
+  background: var(--green);
+  color: #06210f;
+  font-weight: 800;
+  font-size: 19px;
+  min-height: 60px;
+  margin: 12px 0;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+}
+.btn-call.round {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 22px;
+  padding: 0;
+}
+.window-chip {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--amber);
+  background: rgba(245, 158, 11, 0.12);
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+.sheet-collapse { width: 100%; margin-top: 8px; }
+.collapsible-body .outcome,
+.collapsible-body .btn-skip { width: 100%; font-weight: 700; }
+.collapsible-body .outcome.partial { color: var(--amber); }
+.collapsible-body .outcome.failed { color: var(--red); }

@@ -9,6 +9,7 @@ import { formatDistance, formatDuration } from '../lib/format';
 import { HAS_MAPBOX_TOKEN } from '../config';
 import { ShiftBar } from '../components/ShiftBar';
 import { BarcodeScanner } from '../components/nav/BarcodeScanner';
+import { Collapsible } from '../components/Collapsible';
 import { formatMoney } from '../lib/format';
 import { useSettingsStore } from '../store/settingsStore';
 
@@ -70,77 +71,44 @@ export function PlannerScreen({ onStartNavigation }: Props) {
     }
   };
 
-  const canNavigate = trip.stops.length >= 1 && trip.legs.length >= 1;
+  const parcelsTotal = trip.stops.reduce((a, s) => a + (s.parcels?.length ?? 0), 0);
+  const parcelsScanned = trip.stops.reduce(
+    (a, s) => a + (s.parcels?.filter((p) => p.scanned).length ?? 0),
+    0,
+  );
+  const codTotal = trip.stops.reduce((a, s) => a + (s.codAmount ?? 0), 0);
+
+  // „Jedź" = w razie potrzeby zbuduj trasę, potem startuj nawigację.
+  const goNavigate = async () => {
+    if (trip.legs.length === 0) await buildRoute();
+    const t = useTripStore.getState().current();
+    if (t && t.legs.length > 0) {
+      startTrip();
+      onStartNavigation();
+    }
+  };
 
   return (
     <div className="planner-screen">
       <div className="planner-map">
         <MapView legs={trip.legs} stops={trip.stops} start={start} />
-        {!HAS_MAPBOX_TOKEN && (
-          <div className="mock-badge">TRYB MOCK — brak tokena Mapbox (patrz README)</div>
-        )}
+        {!HAS_MAPBOX_TOKEN && <div className="mock-badge">TRYB DEMO (bez mapy Mapbox)</div>}
       </div>
 
       <div className="planner-panel">
-        <ShiftBar />
-        <input
-          className="trip-name"
-          value={trip.name}
-          onChange={(e) => renameTrip(trip.id, e.target.value)}
-        />
-
-        <section className="planner-section">
-          <h3>Start trasy</h3>
-          <div className="start-row">
-            <button className="btn-gps" onClick={useCurrentLocation} disabled={gpsBusy}>
-              {gpsBusy ? 'Pobieram GPS…' : '📍 Moja lokalizacja'}
-            </button>
-            <span className="start-coords">
-              {start ? `${start.lat.toFixed(4)}, ${start.lng.toFixed(4)}` : 'nie ustawiono'}
-            </span>
-          </div>
+        {/* HERO — najważniejsza akcja: dodaj przystanek */}
+        <div className="hero-add">
           <AddressSearch
             proximity={start}
-            placeholder="…lub wpisz adres startu"
-            onPick={(r) => setStart(r.lat, r.lng)}
-          />
-        </section>
-
-        <section className="planner-section">
-          <h3>Dodaj przystanek</h3>
-          <AddressSearch
-            proximity={start}
-            placeholder="Adres / nazwa klienta…"
+            placeholder="➕ Dodaj przystanek — adres lub nazwa klienta"
             onPick={(r) =>
               addStop({ label: r.label, address: r.address, lat: r.lat, lng: r.lng })
             }
           />
-        </section>
+        </div>
 
-        <section className="planner-section">
-          <div className="section-head-row">
-            <h3>Przystanki ({trip.stops.length})</h3>
-            {trip.stops.some((s) => (s.parcels?.length ?? 0) > 0) && (
-              <button className="btn-scan" onClick={() => setLoadScan(true)}>
-                📷 Skanuj załadunek
-              </button>
-            )}
-          </div>
-          {(() => {
-            const parcels = trip.stops.reduce((a, s) => a + (s.parcels?.length ?? 0), 0);
-            const scanned = trip.stops.reduce(
-              (a, s) => a + (s.parcels?.filter((p) => p.scanned).length ?? 0),
-              0,
-            );
-            const cod = trip.stops.reduce((a, s) => a + (s.codAmount ?? 0), 0);
-            if (parcels === 0 && cod === 0) return null;
-            return (
-              <div className="load-summary">
-                {parcels > 0 && <span>📦 {scanned}/{parcels} zeskanowane</span>}
-                {cod > 0 && <span>💰 {formatMoney(cod, currency)} do pobrania</span>}
-              </div>
-            );
-          })()}
+        {/* Lista przystanków — rdzeń pracy */}
+        {trip.stops.length > 0 ? (
           <StopList
             stops={trip.stops}
             onMove={reorderStops}
@@ -150,7 +118,11 @@ export function PlannerScreen({ onStartNavigation }: Props) {
             onRemoveTask={removeTask}
             onToggleTask={(stopId, taskId) => toggleTask(stopId, taskId)}
           />
-        </section>
+        ) : (
+          <p className="hero-hint">
+            Dodaj przystanki, aby zaplanować trasę. Potem dotknij <b>Jedź</b>.
+          </p>
+        )}
 
         {trip.legs.length > 0 && (
           <div className="route-summary">
@@ -159,34 +131,72 @@ export function PlannerScreen({ onStartNavigation }: Props) {
           </div>
         )}
 
+        {(parcelsTotal > 0 || codTotal > 0) && (
+          <div className="load-summary">
+            {parcelsTotal > 0 && (
+              <span>📦 {parcelsScanned}/{parcelsTotal}</span>
+            )}
+            {codTotal > 0 && <span>💰 {formatMoney(codTotal, currency)}</span>}
+            {parcelsTotal > 0 && (
+              <button className="btn-scan" onClick={() => setLoadScan(true)}>
+                Skanuj załadunek
+              </button>
+            )}
+          </div>
+        )}
+
         {error && <div className="error-banner">{error}</div>}
 
-        <div className="planner-actions">
-          <button
-            className="btn-secondary"
-            disabled={trip.stops.length < 2 || building}
-            onClick={() => optimize()}
-          >
-            {building ? '…' : '⚡ Optymalizuj kolejność'}
-          </button>
-          <button
-            className="btn-secondary"
-            disabled={trip.stops.length < 1 || building}
-            onClick={() => buildRoute()}
-          >
-            {building ? '…' : '🧭 Przelicz trasę'}
-          </button>
-          <button
-            className="btn-primary"
-            disabled={!canNavigate}
-            onClick={() => {
-              startTrip();
-              onStartNavigation();
-            }}
-          >
-            ▶ Rozpocznij nawigację
-          </button>
-        </div>
+        {/* DODATKI — schowane w rozwijanych sekcjach */}
+        <Collapsible
+          title="Punkt startu"
+          icon="📍"
+          subtitle={start ? 'ustawiony' : 'bieżąca lokalizacja'}
+        >
+          <div className="start-row">
+            <button className="btn-gps" onClick={useCurrentLocation} disabled={gpsBusy}>
+              {gpsBusy ? 'Pobieram GPS…' : '📍 Moja lokalizacja'}
+            </button>
+            <span className="start-coords">
+              {start ? `${start.lat.toFixed(4)}, ${start.lng.toFixed(4)}` : 'auto (GPS)'}
+            </span>
+          </div>
+          <AddressSearch
+            proximity={start}
+            placeholder="…lub wpisz adres startu"
+            onPick={(r) => setStart(r.lat, r.lng)}
+          />
+        </Collapsible>
+
+        <Collapsible title="Nazwa trasy" icon="✏️" subtitle={trip.name}>
+          <input
+            className="trip-name"
+            value={trip.name}
+            onChange={(e) => renameTrip(trip.id, e.target.value)}
+          />
+        </Collapsible>
+
+        <Collapsible title="Czas pracy" icon="⏱">
+          <ShiftBar />
+        </Collapsible>
+      </div>
+
+      {/* Pasek akcji — zawsze widoczny na dole */}
+      <div className="planner-actionbar">
+        <button
+          className="btn-secondary"
+          disabled={trip.stops.length < 2 || building}
+          onClick={() => optimize()}
+        >
+          {building ? '…' : '⚡ Optymalizuj'}
+        </button>
+        <button
+          className="btn-primary big"
+          disabled={trip.stops.length < 1 || building}
+          onClick={goNavigate}
+        >
+          {building ? '…' : '▶ Jedź'}
+        </button>
       </div>
 
       {loadScan && (

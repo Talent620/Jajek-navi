@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import type { Stop } from '../../types';
 import { useTripStore } from '../../store/tripStore';
+import { Collapsible } from '../Collapsible';
 
 interface Props {
   stops: Stop[];
@@ -129,90 +130,6 @@ function StopRow({
 
       {expanded && (
         <div className="stop-row-body">
-          <div className="field-grid">
-            <div>
-              <label className="field-label">Osoba kontaktowa</label>
-              <input
-                value={stop.contactName ?? ''}
-                onChange={(e) => setStopContact(stop.id, e.target.value, stop.phone ?? '')}
-                placeholder="np. Jan Kowalski"
-              />
-            </div>
-            <div>
-              <label className="field-label">Telefon</label>
-              <input
-                type="tel"
-                value={stop.phone ?? ''}
-                onChange={(e) => setStopContact(stop.id, stop.contactName ?? '', e.target.value)}
-                placeholder="+48…"
-              />
-            </div>
-            <div>
-              <label className="field-label">Okno od</label>
-              <input
-                type="time"
-                value={stop.windowStart ?? ''}
-                onChange={(e) => setStopWindow(stop.id, e.target.value, stop.windowEnd ?? '')}
-              />
-            </div>
-            <div>
-              <label className="field-label">Okno do</label>
-              <input
-                type="time"
-                value={stop.windowEnd ?? ''}
-                onChange={(e) => setStopWindow(stop.id, stop.windowStart ?? '', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="field-label">Pobranie (COD)</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={stop.codAmount ?? ''}
-                onChange={(e) =>
-                  setStopCod(stop.id, e.target.value === '' ? undefined : Number(e.target.value))
-                }
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-
-          <label className="field-label">Paczki / przesyłki</label>
-          <div className="stop-tasks">
-            {parcels.map((p) => (
-              <div key={p.id} className="stop-task">
-                <span className="parcel-code">{p.code}</span>
-                {p.label && <span>{p.label}</span>}
-                <button className="task-del" onClick={() => removeParcel(stop.id, p.id)}>
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="add-task-row">
-            <input
-              value={parcelCode}
-              onChange={(e) => setParcelCode(e.target.value)}
-              placeholder="Numer przesyłki / kod…"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && parcelCode.trim()) {
-                  addParcel(stop.id, parcelCode.trim());
-                  setParcelCode('');
-                }
-              }}
-            />
-            <button
-              onClick={() => {
-                if (parcelCode.trim()) {
-                  addParcel(stop.id, parcelCode.trim());
-                  setParcelCode('');
-                }
-              }}
-            >
-              Dodaj
-            </button>
-          </div>
-
           <label className="field-label">Co tu zrobić (notatka)</label>
           <textarea
             value={stop.notes ?? ''}
@@ -258,6 +175,98 @@ function StopRow({
               Dodaj
             </button>
           </div>
+
+          {/* DODATKI — kontakt, okno czasowe, pobranie, paczki (ukryte) */}
+          <Collapsible
+            title="Szczegóły dostawy"
+            icon="📦"
+            subtitle="kontakt · okno · pobranie · paczki"
+            badge={parcels.length || undefined}
+          >
+            <div className="field-grid">
+              <div>
+                <label className="field-label">Osoba kontaktowa</label>
+                <input
+                  value={stop.contactName ?? ''}
+                  onChange={(e) => setStopContact(stop.id, e.target.value, stop.phone ?? '')}
+                  placeholder="np. Jan Kowalski"
+                />
+              </div>
+              <div>
+                <label className="field-label">Telefon</label>
+                <input
+                  type="tel"
+                  value={stop.phone ?? ''}
+                  onChange={(e) => setStopContact(stop.id, stop.contactName ?? '', e.target.value)}
+                  placeholder="+48…"
+                />
+              </div>
+              <div>
+                <label className="field-label">Okno od</label>
+                <input
+                  type="time"
+                  value={stop.windowStart ?? ''}
+                  onChange={(e) => setStopWindow(stop.id, e.target.value, stop.windowEnd ?? '')}
+                />
+              </div>
+              <div>
+                <label className="field-label">Okno do</label>
+                <input
+                  type="time"
+                  value={stop.windowEnd ?? ''}
+                  onChange={(e) => setStopWindow(stop.id, stop.windowStart ?? '', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="field-label">Pobranie (COD)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={stop.codAmount ?? ''}
+                  onChange={(e) =>
+                    setStopCod(stop.id, e.target.value === '' ? undefined : Number(e.target.value))
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <label className="field-label">Paczki / przesyłki</label>
+            <div className="stop-tasks">
+              {parcels.map((p) => (
+                <div key={p.id} className="stop-task">
+                  <span className="parcel-code">{p.code}</span>
+                  {p.label && <span>{p.label}</span>}
+                  <button className="task-del" onClick={() => removeParcel(stop.id, p.id)}>
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="add-task-row">
+              <input
+                value={parcelCode}
+                onChange={(e) => setParcelCode(e.target.value)}
+                placeholder="Numer przesyłki / kod…"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && parcelCode.trim()) {
+                    addParcel(stop.id, parcelCode.trim());
+                    setParcelCode('');
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (parcelCode.trim()) {
+                    addParcel(stop.id, parcelCode.trim());
+                    setParcelCode('');
+                  }
+                }}
+              >
+                Dodaj
+              </button>
+            </div>
+          </Collapsible>
         </div>
       )}
     </div>

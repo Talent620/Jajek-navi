@@ -1,11 +1,12 @@
-// Bottom-sheet check-listy + Proof of Delivery (POD) — serce pracy busiarza.
-// Wysuwa się po dojechaniu: kontakt, zadania, paczki (skan), pobranie (COD),
-// odbiorca + podpis, wynik dostawy. „Zrobione" zapisuje stan.
+// Bottom-sheet na przystanku — INTUICYJNY: podstawy na wierzchu (zadania,
+// duży „Dostarczono", pobranie, telefon), a dowód dostawy i inne wyniki ukryte
+// w rozwijanych sekcjach.
 import { useEffect, useRef, useState } from 'react';
 import type { Stop } from '../../types';
 import { TaskItem } from './TaskItem';
 import { SignaturePad } from './SignaturePad';
 import { BarcodeScanner } from './BarcodeScanner';
+import { Collapsible } from '../Collapsible';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { callNumber, smsNumber } from '../../services/commsService';
@@ -47,7 +48,6 @@ export function ChecklistSheet({
   const collectCod = useTripStore((s) => s.collectCod);
   const setOutcome = useTripStore((s) => s.setOutcome);
 
-  // Komenda głosowa „Zrobione".
   useEffect(() => {
     const SR =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -77,8 +77,6 @@ export function ChecklistSheet({
 
   if (!stop) return null;
 
-  const tasksDone = stop.tasks.filter((t) => t.done).length;
-  const allTasksDone = stop.tasks.length > 0 && tasksDone === stop.tasks.length;
   const parcels = stop.parcels ?? [];
   const parcelsScanned = parcels.filter((p) => p.scanned).length;
   const voiceAvailable =
@@ -106,104 +104,65 @@ export function ChecklistSheet({
     if (found) {
       setParcelScanned(stop.id, found.id, true);
     } else {
-      // nieznany kod → dopisz jako nową, od razu zeskanowaną paczkę
       addParcel(stop.id, code);
-      const justAdded = (useTripStore.getState().current()?.stops.find((s) => s.id === stop.id)?.parcels ?? [])
-        .find((p) => p.code === code);
+      const justAdded = (
+        useTripStore.getState().current()?.stops.find((s) => s.id === stop.id)?.parcels ?? []
+      ).find((p) => p.code === code);
       if (justAdded) setParcelScanned(stop.id, justAdded.id, true);
     }
+  };
+
+  const deliver = () => {
+    setOutcome(stop.id, 'delivered');
+    onClose();
+    if (hasNext) onNext();
   };
 
   return (
     <div className="checklist-sheet" role="dialog" aria-label={`Przystanek: ${stop.label}`}>
       <div className="sheet-handle" onClick={onClose} />
+
+      {/* Nagłówek + szybki telefon */}
       <div className="sheet-header">
         <div>
           <h2>{stop.label}</h2>
           <p className="sheet-address">{stop.address}</p>
+          {(stop.windowStart || stop.windowEnd) && (
+            <span className="window-chip">🕒 {stop.windowStart || '—'}–{stop.windowEnd || '—'}</span>
+          )}
         </div>
-        {(stop.tasks.length > 0 || parcels.length > 0) && (
-          <span className={`sheet-badge ${allTasksDone ? 'done' : ''}`}>
-            {stop.tasks.length > 0 ? `${tasksDone}/${stop.tasks.length}` : `${parcelsScanned}/${parcels.length}`}
-          </span>
+        {stop.phone && (
+          <button className="btn-call round" onClick={() => callNumber(stop.phone!)} aria-label="Zadzwoń">
+            📞
+          </button>
         )}
       </div>
 
-      {/* Kontakt */}
-      {(stop.phone || stop.contactName) && (
-        <div className="pod-contact">
-          <span>{stop.contactName || stop.phone}</span>
-          {stop.phone && (
-            <div className="pod-contact-btns">
-              <button className="btn-call" onClick={() => callNumber(stop.phone!)}>
-                📞 Zadzwoń
-              </button>
-              <button className="btn-secondary" onClick={() => smsNumber(stop.phone!)}>
-                ✉ SMS
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Okno czasowe */}
-      {(stop.windowStart || stop.windowEnd) && (
-        <div className="pod-window">
-          🕒 Okno: {stop.windowStart || '—'}–{stop.windowEnd || '—'}
-        </div>
-      )}
-
+      {/* Notatka „co tu zrobić" — istotna, na wierzchu */}
       {stop.notes && (
         <div className="sheet-notes">
           <strong>Co tu zrobić:</strong> {stop.notes}
         </div>
       )}
 
-      {/* Pobranie (COD) */}
+      {/* Pobranie — gdy jest, pokazujemy od razu */}
       {stop.codAmount != null && stop.codAmount > 0 && (
         <div className={`pod-cod ${stop.codCollected ? 'collected' : ''}`}>
           <span>
-            💰 Pobranie: <strong>{formatMoney(stop.codAmount, currency)}</strong>
+            💰 Pobierz: <strong>{formatMoney(stop.codAmount, currency)}</strong>
           </span>
           <button
             className={stop.codCollected ? 'btn-secondary' : 'btn-primary'}
             onClick={() => collectCod(stop.id, !stop.codCollected)}
           >
-            {stop.codCollected ? 'Pobrano ✓' : 'Oznacz pobrane'}
+            {stop.codCollected ? 'Pobrane ✓' : 'Pobrane?'}
           </button>
         </div>
       )}
 
-      {/* Paczki */}
-      {parcels.length > 0 && (
-        <div className="pod-section">
-          <div className="pod-section-head">
-            <strong>Paczki ({parcelsScanned}/{parcels.length})</strong>
-            <button className="btn-scan" onClick={() => setShowScanner(true)}>
-              📷 Skanuj
-            </button>
-          </div>
-          {parcels.map((p) => (
-            <div key={p.id} className={`parcel-row ${p.scanned ? 'scanned' : ''}`}>
-              <button className="task-toggle" onClick={() => setParcelScanned(stop.id, p.id, !p.scanned)}>
-                {p.scanned ? '✓' : '○'}
-              </button>
-              <span className="parcel-code">{p.code}</span>
-              {p.label && <span className="parcel-label">{p.label}</span>}
-              <button className="task-del" onClick={() => removeParcel(stop.id, p.id)}>
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Zadania */}
-      {(stop.tasks.length > 0 || parcels.length === 0) && (
+      {/* Zadania — rdzeń check-listy */}
+      {stop.tasks.length > 0 && (
         <div className="task-list">
-          {stop.tasks.length === 0 && parcels.length === 0 && (
-            <p className="empty">Brak zadań i paczek dla tego przystanku.</p>
-          )}
           {stop.tasks.map((t) => (
             <TaskItem
               key={t.id}
@@ -215,33 +174,40 @@ export function ChecklistSheet({
         </div>
       )}
 
-      <div className="sheet-add-task">
-        <input
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          placeholder="Dodaj zadanie…"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && newTask.trim()) {
-              onAddTask(newTask.trim());
-              setNewTask('');
-            }
-          }}
-        />
-        <button
-          onClick={() => {
-            if (newTask.trim()) {
-              onAddTask(newTask.trim());
-              setNewTask('');
-            }
-          }}
-        >
-          +
-        </button>
-      </div>
+      {/* GŁÓWNA AKCJA */}
+      <button className="btn-deliver" onClick={deliver}>
+        ✅ Dostarczono{hasNext ? ' — następny' : ''}
+      </button>
 
-      {/* Odbiorca + podpis (POD) */}
-      <div className="pod-section">
-        <strong>Potwierdzenie odbioru</strong>
+      {/* DOWÓD DOSTAWY — ukryty, auto-otwarty gdy są paczki */}
+      <Collapsible
+        title="Dowód dostawy"
+        icon="✍"
+        subtitle="paczki · podpis · odbiorca"
+        defaultOpen={parcels.length > 0}
+        badge={parcels.length ? `${parcelsScanned}/${parcels.length}` : undefined}
+      >
+        {/* Paczki */}
+        <div className="pod-section-head">
+          <strong>Paczki ({parcelsScanned}/{parcels.length})</strong>
+          <button className="btn-scan" onClick={() => setShowScanner(true)}>
+            📷 Skanuj
+          </button>
+        </div>
+        {parcels.map((p) => (
+          <div key={p.id} className={`parcel-row ${p.scanned ? 'scanned' : ''}`}>
+            <button className="task-toggle" onClick={() => setParcelScanned(stop.id, p.id, !p.scanned)}>
+              {p.scanned ? '✓' : '○'}
+            </button>
+            <span className="parcel-code">{p.code}</span>
+            {p.label && <span className="parcel-label">{p.label}</span>}
+            <button className="task-del" onClick={() => removeParcel(stop.id, p.id)}>
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {/* Odbiorca + podpis */}
         <input
           className="pod-recipient"
           value={stop.recipientName ?? ''}
@@ -260,31 +226,56 @@ export function ChecklistSheet({
             ✍ Podpis odbiorcy
           </button>
         )}
-      </div>
 
-      {/* Wynik dostawy + akcje */}
-      <div className="pod-outcomes">
+        {/* Dodaj zadanie + komenda głosowa */}
+        <div className="sheet-add-task">
+          <input
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Dodaj zadanie…"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newTask.trim()) {
+                onAddTask(newTask.trim());
+                setNewTask('');
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              if (newTask.trim()) {
+                onAddTask(newTask.trim());
+                setNewTask('');
+              }
+            }}
+          >
+            +
+          </button>
+        </div>
+        {voiceAvailable && (
+          <button className={`btn-voice ${listening ? 'active' : ''}`} onClick={toggleListen}>
+            {listening ? '🎙 Słucham… („Zrobione")' : '🎙 Komenda głosowa „Zrobione"'}
+          </button>
+        )}
+      </Collapsible>
+
+      {/* INNY WYNIK — ukryty */}
+      <Collapsible title="Inny wynik / problem" icon="⚠️">
+        {stop.phone && (
+          <button className="btn-secondary" onClick={() => smsNumber(stop.phone!)}>
+            ✉ Wyślij SMS do klienta
+          </button>
+        )}
         <button
-          className={`outcome delivered ${stop.outcome === 'delivered' ? 'active' : ''}`}
-          onClick={() => {
-            setOutcome(stop.id, 'delivered');
-            onClose();
-            if (hasNext) onNext();
-          }}
-        >
-          ✅ Dostarczono
-        </button>
-        <button
-          className={`outcome partial ${stop.outcome === 'partial' ? 'active' : ''}`}
+          className="outcome partial"
           onClick={() => {
             const reason = prompt('Co dostarczono częściowo / czego brakuje?', '');
             if (reason !== null) setOutcome(stop.id, 'partial', reason);
           }}
         >
-          🟡 Częściowo
+          🟡 Dostawa częściowa
         </button>
         <button
-          className={`outcome failed ${stop.outcome === 'failed' ? 'active' : ''}`}
+          className="outcome failed"
           onClick={() => {
             const reason = prompt('Powód nieudanej dostawy:', 'Klient nieobecny');
             if (reason !== null) {
@@ -296,27 +287,10 @@ export function ChecklistSheet({
         >
           ❌ Nieudane
         </button>
-      </div>
-
-      <div className="sheet-actions">
-        {voiceAvailable && (
-          <button className={`btn-voice ${listening ? 'active' : ''}`} onClick={toggleListen}>
-            {listening ? '🎙 Słucham… („Zrobione")' : '🎙 Komenda głosowa'}
-          </button>
-        )}
-        {allTasksDone && hasNext ? (
-          <button className="btn-next" onClick={onNext}>
-            Następny przystanek →
-          </button>
-        ) : (
-          <button className="btn-secondary" onClick={onClose}>
-            Zwiń
-          </button>
-        )}
         <button
           className="btn-skip"
           onClick={() => {
-            const reason = prompt('Powód pominięcia / przełożenia przystanku:', 'Klient nieobecny');
+            const reason = prompt('Powód pominięcia / przełożenia:', 'Klient nieobecny');
             if (reason !== null) {
               onSkip(reason);
               onClose();
@@ -324,9 +298,13 @@ export function ChecklistSheet({
             }
           }}
         >
-          ⏭ Pomiń / przełóż przystanek
+          ⏭ Pomiń / przełóż
         </button>
-      </div>
+      </Collapsible>
+
+      <button className="btn-secondary sheet-collapse" onClick={onClose}>
+        Zwiń
+      </button>
 
       {showSig && (
         <div className="modal-backdrop" onClick={() => setShowSig(false)}>
