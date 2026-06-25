@@ -81,6 +81,29 @@ interface TripState {
 
   // --- backup / przywracanie ---
   importTrips: (incoming: Trip[], mode: 'merge' | 'replace') => number;
+
+  // --- powtarzalność tras ---
+  duplicateTrip: (tripId: string) => string | null;
+  resetTripProgress: (tripId: string) => void;
+}
+
+/** Czyści postęp przystanku (do ponownego przejechania trasy). */
+function freshStop(stop: Stop): Stop {
+  return {
+    ...stop,
+    arrived: false,
+    arrivedAt: undefined,
+    completed: false,
+    skipped: false,
+    skipReason: undefined,
+    recipientName: undefined,
+    signatureDataUrl: undefined,
+    outcome: undefined,
+    outcomeReason: undefined,
+    codCollected: false,
+    parcels: (stop.parcels ?? []).map((p) => ({ ...p, scanned: false, scannedAt: undefined })),
+    tasks: stop.tasks.map((t) => ({ ...t, done: false, doneAt: undefined })),
+  };
 }
 
 function recomputeCompletion(stop: Stop): Stop {
@@ -533,6 +556,34 @@ export const useTripStore = create<TripState>()(
         });
         return valid.length;
       },
+
+      duplicateTrip: (tripId) => {
+        const src = get().trips.find((t) => t.id === tripId);
+        if (!src) return null;
+        const now = new Date().toISOString();
+        const id = uid('trip_');
+        const copy: Trip = {
+          ...src,
+          id,
+          name: `${src.name} (kopia)`,
+          date: now,
+          createdAt: now,
+          completedAt: undefined,
+          status: 'planned',
+          stops: src.stops.map((s) => ({ ...freshStop(s), id: uid('stop_') })),
+        };
+        set((s) => ({ trips: [copy, ...s.trips], currentTripId: id }));
+        return id;
+      },
+
+      resetTripProgress: (tripId) =>
+        set((s) => ({
+          trips: s.trips.map((t) =>
+            t.id === tripId
+              ? { ...t, status: 'planned', completedAt: undefined, stops: t.stops.map(freshStop) }
+              : t,
+          ),
+        })),
     }),
     {
       name: 'nav-trips',

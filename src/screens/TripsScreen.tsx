@@ -30,6 +30,8 @@ export function TripsScreen({ onOpenPlanner }: Props) {
   const setCurrent = useTripStore((s) => s.setCurrent);
   const deleteTrip = useTripStore((s) => s.deleteTrip);
   const createTrip = useTripStore((s) => s.createTrip);
+  const duplicateTrip = useTripStore((s) => s.duplicateTrip);
+  const resetTripProgress = useTripStore((s) => s.resetTripProgress);
   const currency = useSettingsStore((s) => s.currency);
 
   return (
@@ -149,6 +151,26 @@ export function TripsScreen({ onOpenPlanner }: Props) {
                 >
                   📤 Raport
                 </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    duplicateTrip(trip.id);
+                    onOpenPlanner();
+                  }}
+                >
+                  📋 Powiel
+                </button>
+                {(st.stopsDone > 0 || trip.status === 'completed') && (
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      if (confirm(`Wyczyścić postęp trasy „${trip.name}" do ponownego przejechania?`))
+                        resetTripProgress(trip.id);
+                    }}
+                  >
+                    ♻ Resetuj
+                  </button>
+                )}
                 <button
                   className="btn-secondary danger"
                   onClick={() => {

@@ -44,6 +44,49 @@ describe('tripStore — POD / completion', () => {
     expect(useTripStore.getState().current()!.stops[0].completed).toBe(true);
   });
 
+  it('powiel trasę: nowe id, wyczyszczony postęp, status planned', () => {
+    const s = useTripStore.getState();
+    s.createTrip('Oryginał');
+    s.addStop({ label: 'A', address: 'ul. A', lat: 53.78, lng: 20.48 });
+    const orig = useTripStore.getState().current()!;
+    const stopId = orig.stops[0].id;
+    useTripStore.getState().addTask(stopId, 'Zadanie');
+    const taskId = useTripStore.getState().current()!.stops[0].tasks[0].id;
+    useTripStore.getState().toggleTask(stopId, taskId, true);
+    useTripStore.getState().setOutcome(stopId, 'delivered');
+
+    const newId = useTripStore.getState().duplicateTrip(orig.id);
+    expect(newId).not.toBeNull();
+    const copy = useTripStore.getState().trips.find((t) => t.id === newId)!;
+    expect(copy.id).not.toBe(orig.id);
+    expect(copy.stops[0].id).not.toBe(stopId);
+    expect(copy.name).toContain('(kopia)');
+    expect(copy.status).toBe('planned');
+    expect(copy.stops[0].completed).toBe(false);
+    expect(copy.stops[0].outcome).toBeUndefined();
+    expect(copy.stops[0].tasks[0].done).toBe(false);
+    expect(copy.stops[0].tasks[0].text).toBe('Zadanie'); // definicja zachowana
+  });
+
+  it('reset postępu trasy czyści wykonanie, zachowuje definicję', () => {
+    const s = useTripStore.getState();
+    s.createTrip('Trasa');
+    s.addStop({ label: 'A', address: 'ul. A', lat: 53.78, lng: 20.48 });
+    const trip = useTripStore.getState().current()!;
+    const stopId = trip.stops[0].id;
+    useTripStore.getState().addTask(stopId, 'Z');
+    const taskId = useTripStore.getState().current()!.stops[0].tasks[0].id;
+    useTripStore.getState().toggleTask(stopId, taskId, true);
+    useTripStore.getState().completeTrip();
+
+    useTripStore.getState().resetTripProgress(trip.id);
+    const after = useTripStore.getState().trips.find((t) => t.id === trip.id)!;
+    expect(after.status).toBe('planned');
+    expect(after.stops[0].completed).toBe(false);
+    expect(after.stops[0].tasks[0].done).toBe(false);
+    expect(after.stops[0].tasks).toHaveLength(1); // definicja zadania została
+  });
+
   it('unikalne identyfikatory przy szybkim dodawaniu', () => {
     const s = useTripStore.getState();
     s.createTrip('Test4');
