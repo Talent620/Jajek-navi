@@ -1649,3 +1649,10 @@ h2 { letter-spacing: 0.5px; }
 
 .mode-toggle.wrap { flex-wrap: wrap; }
 .mode-toggle.wrap button { flex: 1 1 45%; }
+
+/* podgląd następnego manewru */
+.maneuver-then {
+  font-size: 13px; color: var(--muted); margin-top: 2px;
+  display: flex; align-items: center; gap: 5px;
+}
+.maneuver-then .then-icon { color: var(--neon-2); font-size: 15px; }

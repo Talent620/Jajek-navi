@@ -14,6 +14,8 @@ interface NavState {
   // bieżący manewr (do banera)
   currentStep: ManeuverStep | null;
   distanceToManeuver: number;
+  // następny manewr (podgląd „potem…")
+  nextStep: ManeuverStep | null;
 
   // pozostałe do końca trasy
   remainingDistance: number;
@@ -32,6 +34,7 @@ interface NavState {
   setRerouting: (v: boolean) => void;
   setOffRouteDistance: (d: number) => void;
   setBanner: (step: ManeuverStep | null, distance: number) => void;
+  setNextStep: (step: ManeuverStep | null) => void;
   setRemaining: (distance: number, duration: number) => void;
   setActiveStopIndex: (i: number) => void;
   openSheet: (stopId: string) => void;
@@ -48,6 +51,7 @@ export const useNavStore = create<NavState>((set) => ({
   offRouteDistance: 0,
   currentStep: null,
   distanceToManeuver: 0,
+  nextStep: null,
   remainingDistance: 0,
   remainingDuration: 0,
   activeStopIndex: 0,
@@ -61,6 +65,7 @@ export const useNavStore = create<NavState>((set) => ({
   setOffRouteDistance: (offRouteDistance) => set({ offRouteDistance }),
   setBanner: (currentStep, distanceToManeuver) =>
     set({ currentStep, distanceToManeuver }),
+  setNextStep: (nextStep) => set({ nextStep }),
   setRemaining: (remainingDistance, remainingDuration) =>
     set({ remainingDistance, remainingDuration }),
   setActiveStopIndex: (activeStopIndex) => set({ activeStopIndex }),
@@ -76,6 +81,7 @@ export const useNavStore = create<NavState>((set) => ({
       offRouteDistance: 0,
       currentStep: null,
       distanceToManeuver: 0,
+      nextStep: null,
       remainingDistance: 0,
       remainingDuration: 0,
       activeStopIndex: 0,

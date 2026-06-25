@@ -35,6 +35,7 @@ export function NavigationScreen({ onExit }: Props) {
   const fix = useNavStore((s) => s.fix);
   const currentStep = useNavStore((s) => s.currentStep);
   const distanceToManeuver = useNavStore((s) => s.distanceToManeuver);
+  const nextStep = useNavStore((s) => s.nextStep);
   const rerouting = useNavStore((s) => s.rerouting);
   const remainingDistance = useNavStore((s) => s.remainingDistance);
   const remainingDuration = useNavStore((s) => s.remainingDuration);
@@ -149,6 +150,7 @@ export function NavigationScreen({ onExit }: Props) {
         step={currentStep}
         distanceToManeuver={distanceToManeuver}
         rerouting={rerouting}
+        nextStep={nextStep}
       />
 
       {/* HUD: prędkościomierz + pogoda następnego celu */}

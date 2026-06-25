@@ -6,6 +6,7 @@ interface Props {
   step: ManeuverStep | null;
   distanceToManeuver: number;
   rerouting?: boolean;
+  nextStep?: ManeuverStep | null;
 }
 
 /** Prosta ikona kierunku na bazie type/modifier. */
@@ -21,7 +22,7 @@ function maneuverIcon(step: ManeuverStep | null): string {
   return '⬆';
 }
 
-export function ManeuverBanner({ step, distanceToManeuver, rerouting }: Props) {
+export function ManeuverBanner({ step, distanceToManeuver, rerouting, nextStep }: Props) {
   if (rerouting) {
     return (
       <div className="maneuver-banner rerouting">
@@ -48,6 +49,11 @@ export function ManeuverBanner({ step, distanceToManeuver, rerouting }: Props) {
       <div className="maneuver-text">
         <div className="maneuver-distance">{formatDistance(distanceToManeuver)}</div>
         <div className="maneuver-instruction">{step.instruction}</div>
+        {nextStep && step.type !== 'arrive' && (
+          <div className="maneuver-then">
+            potem <span className="then-icon">{maneuverIcon(nextStep)}</span> {nextStep.instruction}
+          </div>
+        )}
       </div>
     </div>
   );

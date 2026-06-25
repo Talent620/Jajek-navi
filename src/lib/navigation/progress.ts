@@ -116,6 +116,20 @@ export function advanceProgress(
   };
 }
 
+/** Zwraca KOLEJNY manewr po (legIndex, stepIndex) — do podglądu „potem…". */
+export function nextStepAfter(
+  legs: RouteLeg[],
+  legIndex: number,
+  stepIndex: number,
+): ManeuverStep | null {
+  const leg = legs[legIndex];
+  if (!leg) return null;
+  if (stepIndex + 1 < leg.steps.length) return leg.steps[stepIndex + 1];
+  const nl = legs[legIndex + 1];
+  if (nl && nl.steps.length > 0) return nl.steps[0];
+  return null;
+}
+
 /** Pozostały dystans/czas od bieżącej pozycji do końca trasy (przybliżenie). */
 export function remainingToEnd(
   state: ProgressState,

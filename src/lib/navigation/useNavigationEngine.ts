@@ -14,7 +14,7 @@ import {
 import { getDirections } from '../../services/mapboxService';
 import { haptic, notify } from '../../services/deviceService';
 import { sound } from '../../services/soundService';
-import { advanceProgress, remainingToEnd } from './progress';
+import { advanceProgress, remainingToEnd, nextStepAfter } from './progress';
 import { checkOffRoute } from './offroute';
 import { haversine } from './geo';
 import { NAV } from '../../config';
@@ -61,6 +61,7 @@ export function useNavigationEngine(tripId: string | null) {
       nav.setProgress(progState);
       if (progress.step) {
         nav.setBanner(progress.step, progress.distanceToManeuver);
+        nav.setNextStep(nextStepAfter(trip.legs, progState.legIndex, progState.stepIndex));
       }
 
       // 2) Głos: zapowiedź z wyprzedzeniem + przy manewrze

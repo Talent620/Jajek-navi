@@ -179,3 +179,21 @@ describe('progress.advanceProgress', () => {
     expect(progress.advanced).toBe(false);
   });
 });
+
+import { nextStepAfter } from './progress';
+describe('progress.nextStepAfter', () => {
+  const legsTwo = [
+    legFromCoords([[20,53],[20,53.01]]),
+    legFromCoords([[20,53.01],[20,53.02]]),
+  ];
+  it('zwraca kolejny krok w obrębie legu', () => {
+    const leg0 = legsTwo[0];
+    // dołóż drugi krok do leg0
+    leg0.steps.push({ instruction:'Skręć w prawo', voiceInstruction:'', maneuverLng:20, maneuverLat:53.005, distanceMeters:50, type:'turn', modifier:'right' });
+    expect(nextStepAfter(legsTwo, 0, 0)?.instruction).toBe('Skręć w prawo');
+  });
+  it('przechodzi na pierwszy krok kolejnego legu', () => {
+    expect(nextStepAfter(legsTwo, 1, 99)).toBeNull(); // brak dalej
+    expect(nextStepAfter(legsTwo, 0, 50)?.instruction).toBe(legsTwo[1].steps[0].instruction);
+  });
+});
