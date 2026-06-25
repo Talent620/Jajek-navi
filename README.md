@@ -47,11 +47,13 @@ ciemnego, jasnego i satelity.
 
 ## ✨ Bajery „live / z przyszłości"
 
-- **Holograficzna jazda 3D (WebGL / three.js)** — przełącznik „🚗 Jazda 3D":
-  prawdziwy świat 3D, trasa jako świecąca energetyczna wstęga nad neonową
-  siatką, kamera-pościg lecąca po trasie, pulsy energii płynące po drodze,
-  pylony 3D przy przystankach (z numerami), pole gwiazd, dynamiczne FOV od
-  prędkości. Fallback 2D (canvas), gdy brak WebGL.
+- **Pionierski interfejs jazdy 3D (WebGL / three.js + bloom)** — „🚗 Jazda 3D":
+  holograficzny HUD AR z prawdziwym **bloomem** (EffectComposer/UnrealBloomPass),
+  **shaderową** energetyczną wstęgą trasy (płynący puls), **nieskończoną neonową
+  siatką** (GPU shader), **konformalną strzałką manewru** unoszącą się nad drogą,
+  holograficznymi **beamami przystanków** z numerami, **cząsteczkami prędkości**,
+  polem gwiazd i kamerą-pościgiem z dynamicznym FOV. Cap pixel-ratio + dispose
+  zasobów GPU (wg dobrych praktyk mobilnych). Fallback 2D, gdy brak WebGL.
 - **Prędkościomierz HUD** (neonowy łuk) na ekranie nawigacji.
 - **Pogoda w celu** (Open-Meteo, bez klucza) — ikona + temperatura następnego stopu.
 - **Najbliższe POI** (paliwo / parking / jedzenie / WC / bankomat) z OpenStreetMap
