@@ -69,27 +69,53 @@ cd android && ./gradlew assembleDebug
 Platforma `android/` jest już wygenerowana i skonfigurowana (uprawnienia,
 pluginy). `appId = pl.vai.nawigacja`.
 
-### ⚠️ Status APK w tym środowisku (ważne)
+## 📥 Gotowy APK do pobrania (GitHub Releases) + auto-aktualizacja
 
-Debug APK **nie został zbudowany w tym zdalnym środowisku** z powodu **polityki
-egress**: pobranie Android Gradle Plugin z `dl.google.com` (Google Maven)
-zwraca **HTTP 403** (host zablokowany przez politykę sieciową sesji), a w
-środowisku **nie ma zainstalowanego Android SDK** (`ANDROID_HOME` puste).
+APK budowany jest **automatycznie w GitHub Actions** (runner ma Android SDK i
+pełny dostęp do sieci) i publikowany jako **Release**:
 
-To ograniczenie **infrastruktury**, nie kodu. Na normalnej maszynie
-deweloperskiej z dostępem do `dl.google.com` + Android SDK build przechodzi
-standardowo (`./gradlew assembleDebug`). Co jest zweryfikowane tutaj:
+- **Pobierz najnowszy:** zakładka **Releases** repozytorium →
+  `jajek-navi-<wersja>.apk` (np. `v1.0.0`).
+- W Androidzie włącz „Instaluj z nieznanych źródeł" dla przeglądarki/menedżera
+  plików i zainstaluj plik.
 
-- ✅ `npm run build` (web) przechodzi.
-- ✅ `npx vitest run` — 16 testów logiki nawigacji zielonych.
-- ✅ `npx cap add android` + `npx cap sync` — platforma i pluginy poprawne.
-- ⛔ `./gradlew assembleDebug` — blokada na `dl.google.com` (403) + brak SDK.
+**Auto-aktualizacja (sideload):** aplikacja sama odpytuje GitHub Releases
+(`Ustawienia → Sprawdź aktualizacje`, a także automatycznie przy starcie) i —
+gdy jest nowsza wersja — pokazuje baner **„Dostępna aktualizacja"** z
+przyciskiem pobrania nowego APK. Działa jak Obtainium / F-Droid: kolejne wydania
+są podpisane **tym samym kluczem**, więc instalują się „w miejscu" (nadpisują).
 
-Aby dokończyć APK lokalnie:
-1. Zainstaluj Android SDK (Android Studio lub `cmdline-tools` + `sdkmanager`),
-   ustaw `ANDROID_HOME` / `local.properties`.
-2. Zapewnij dostęp do `dl.google.com` i `repo1.maven.org`.
-3. `cd android && ./gradlew assembleDebug`.
+> Workflow: `.github/workflows/android.yml`. Uruchamia się przy pushu na branch
+> oraz ręcznie (Actions → *Build Android APK* → *Run workflow*). Mapbox token
+> można podać jako sekret repo `VITE_MAPBOX_TOKEN` (bez niego build powstaje w
+> trybie MOCK).
+
+### 🔑 Podpis (klucz DEMO — ważna uwaga bezpieczeństwa)
+
+Repo zawiera **demonstracyjny** keystore `android/keystore/demo.keystore`
+(hasło `jajekdemo`, alias `jajek-demo`) wyłącznie po to, by sideloadowane wydania
+miały **stały podpis** i dało się aktualizować w miejscu.
+
+**To NIE jest klucz produkcyjny** — hasła są jawne. Do publikacji w Google Play
+wygeneruj własny keystore i podaj go przez sekrety repo
+(`ANDROID_KEYSTORE_FILE`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+`ANDROID_KEY_PASSWORD`) — build.gradle automatycznie ich użyje.
+
+### Dlaczego APK nie powstaje w tej sesji (sandbox)
+
+W zdalnym środowisku tej sesji APK **nie buduje się** przez **politykę egress**:
+`dl.google.com` / `maven.google.com` (jedyne źródło Android Gradle Plugin i SDK)
+zwracają **403**, a nie ma ich na dozwolonym Maven Central. Dlatego build APK
+przeniesiono do **GitHub Actions**, gdzie sieć i SDK są dostępne. Zweryfikowane
+lokalnie w sesji: ✅ `npm run build`, ✅ 16 testów (`vitest`),
+✅ `cap add/sync android` (9 pluginów). Budowę APK wykonuje CI.
+
+### Build lokalny (na maszynie z SDK)
+
+```bash
+cd android && ./gradlew assembleRelease   # podpisany kluczem demo
+# APK: android/app/build/outputs/apk/release/app-release.apk
+```
 
 ## Skrypty
 
@@ -135,23 +161,40 @@ point-to-segment, interpolacja wzdłuż trasy (`geo.ts`).
 - [x] Trwałość (Zustand persist → `@capacitor/preferences` / localStorage) —
       dane przeżywają restart; ekran **Historia**.
 - [x] Tryb **mock GPS** (symulacja jazdy po trasie) do testów.
-- [ ] **Debug APK** — zablokowany w tym środowisku (patrz wyżej).
+- [x] **APK** budowany w GitHub Actions i publikowany w Releases (download).
+- [x] **Auto-aktualizacja** APK z GitHub Releases (baner + ekran Ustawień).
+
+### Udoskonalenia ponad TomTom (sekcja 4.6) — status
+
+- [x] ✅ Check-lista zadań per przystanek
+- [x] ✅ Notatka „co tu zrobić" wysuwana po dojechaniu
+- [x] ✅ Licznik postępu dnia (przystanki + zadania)
+- [x] ✅ Komenda głosowa „Zrobione"
+- [x] ✅ **Zdjęcie jako dowód wykonania** (`@capacitor/camera`, `Task.photoUri`,
+      miniatura w check-liście)
+- [x] ✅ **Podsumowanie końca dnia** — raport tekstowy (`lib/report.ts`) +
+      udostępnianie (`@capacitor/share`, fallback Web Share/schowek/plik) —
+      przycisk „📤 Raport" na ekranie nawigacji i w Historii
+- [x] ✅ **Pominięcie / przełożenie przystanku** z powodem (w check-liście)
+- [x] ⬜→🟡 **Tryb offline mapy** — szkielet (`lib/offline/tileCache.ts`:
+      planowanie kafli wzdłuż trasy) + przełącznik w Ustawieniach; pełny prefetch
+      i serwowanie kafli offline = `// TODO`
 
 ## Znane ograniczenia i TODO
 
-- **APK**: wymaga Android SDK + dostępu do `dl.google.com` (tu zablokowane).
-- **Background geolocation / foreground service**: uprawnienia w manifeście są
+- **APK w sandboxie**: nie buduje się przez politykę egress (Google Maven 403) —
+  build przeniesiony do GitHub Actions (patrz wyżej).
+- **Klucz podpisu**: dołączony jest **demo** keystore (jawne hasła) — do
+  produkcji podmień na własny przez sekrety repo.
+- **Background geolocation / foreground service**: uprawnienia w manifeście
   ustawione, `locationService` ma punkt wejścia; pełna konfiguracja
   foreground-service przy wygaszonym ekranie wg dokumentacji pluginu —
   `// TODO` w `locationService.ts`.
+- **Offline mapy**: prefetch i lokalny cache kafli — `// TODO`
+  (`lib/offline/tileCache.ts` ma już planowanie kafli).
 - **Optymalizacja**: Mapbox Optimization v1 ma limit ~12 współrzędnych; powyżej
   oraz bez tokena używamy heurystyki nearest-neighbour (sekcja 7).
-- **Drag&drop kolejności**: zaimplementowano przyciski ↑/↓ (niezawodne na
-  dotyku); pełny drag — TODO.
-- **Udoskonalenia ⬜ (sekcja 4.6)**: zdjęcie-dowód (`@capacitor/camera`),
-  raport końca dnia + `@capacitor/share`, pominięcie/przełożenie przystanku,
-  offline cache kafli — punkty zaczepienia w modelu danych (`Task.photoUri`),
-  do dobudowania.
+- **Drag&drop kolejności**: przyciski ↑/↓ (niezawodne na dotyku); pełny drag — TODO.
 - **Mock geokodowanie** zwraca deterministyczne punkty wokół Olsztyna — tylko
   dla trybu bez tokena.
 

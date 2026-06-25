@@ -3,6 +3,14 @@
  * NIE hardkoduj tu kluczy — wczytujemy je z import.meta.env (plik .env).
  */
 
+/** Wersja aplikacji (z package.json, wstrzykiwana przez Vite). */
+export const APP_VERSION: string =
+  typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+
+/** Repo GitHub do sprawdzania aktualizacji APK (owner/repo). */
+export const UPDATE_REPO: string =
+  import.meta.env.VITE_UPDATE_REPO ?? 'talent620/jajek-navi';
+
 export const MAPBOX_TOKEN: string = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
 export const MAPBOX_STYLE: string =

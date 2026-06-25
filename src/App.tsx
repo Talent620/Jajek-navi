@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { PlannerScreen } from './screens/PlannerScreen';
 import { NavigationScreen } from './screens/NavigationScreen';
 import { TripsScreen } from './screens/TripsScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
+import { UpdateBanner } from './components/UpdateBanner';
 
-type Screen = 'planner' | 'navigation' | 'trips';
+type Screen = 'planner' | 'navigation' | 'trips' | 'settings';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('planner');
 
   return (
     <div className="app">
+      {screen !== 'navigation' && <UpdateBanner />}
+
       <main className="app-main">
         {screen === 'planner' && (
           <PlannerScreen onStartNavigation={() => setScreen('navigation')} />
@@ -20,6 +24,7 @@ export default function App() {
         {screen === 'trips' && (
           <TripsScreen onOpenPlanner={() => setScreen('planner')} />
         )}
+        {screen === 'settings' && <SettingsScreen />}
       </main>
 
       {screen !== 'navigation' && (
@@ -35,6 +40,12 @@ export default function App() {
             onClick={() => setScreen('trips')}
           >
             📚 Historia
+          </button>
+          <button
+            className={screen === 'settings' ? 'active' : ''}
+            onClick={() => setScreen('settings')}
+          >
+            ⚙ Ustawienia
           </button>
         </nav>
       )}

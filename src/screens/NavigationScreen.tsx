@@ -8,6 +8,8 @@ import { useTripStore } from '../store/tripStore';
 import { useNavStore } from '../store/navStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useNavigationEngine } from '../lib/navigation/useNavigationEngine';
+import { buildDayReport } from '../lib/report';
+import { shareText } from '../services/shareService';
 
 interface Props {
   onExit: () => void;
@@ -17,6 +19,8 @@ export function NavigationScreen({ onExit }: Props) {
   const trip = useTripStore((s) => s.trips.find((t) => t.id === s.currentTripId) ?? null);
   const toggleTask = useTripStore((s) => s.toggleTask);
   const addTask = useTripStore((s) => s.addTask);
+  const setTaskPhoto = useTripStore((s) => s.setTaskPhoto);
+  const skipStop = useTripStore((s) => s.skipStop);
   const completeTrip = useTripStore((s) => s.completeTrip);
 
   const fix = useNavStore((s) => s.fix);
@@ -63,12 +67,13 @@ export function NavigationScreen({ onExit }: Props) {
       ? { lat: trip.startLat, lng: trip.startLng }
       : undefined;
 
-  const stopsDone = ordered.filter((s) => s.completed).length;
+  const stopsDone = ordered.filter((s) => s.completed || s.skipped).length;
   const tasksTotal = ordered.reduce((a, s) => a + s.tasks.length, 0);
   const tasksDone = ordered.reduce((a, s) => a + s.tasks.filter((t) => t.done).length, 0);
 
   const sheetStop = ordered.find((s) => s.id === sheetStopId) ?? null;
-  const nextStop = ordered.find((s) => !s.completed && s.id !== sheetStopId) ?? null;
+  const nextStop =
+    ordered.find((s) => !s.completed && !s.skipped && s.id !== sheetStopId) ?? null;
 
   const exit = () => {
     setActive(false);
@@ -76,7 +81,7 @@ export function NavigationScreen({ onExit }: Props) {
     onExit();
   };
 
-  const allDone = ordered.length > 0 && ordered.every((s) => s.completed);
+  const allDone = ordered.length > 0 && ordered.every((s) => s.completed || s.skipped);
 
   return (
     <div className="nav-screen">
@@ -127,16 +132,24 @@ export function NavigationScreen({ onExit }: Props) {
 
       {allDone && !sheetStop && (
         <div className="trip-complete-banner">
-          <span>✅ Wszystkie przystanki zrobione!</span>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              completeTrip();
-              exit();
-            }}
-          >
-            Zakończ dzień
-          </button>
+          <span>✅ Wszystkie przystanki rozliczone!</span>
+          <div className="complete-actions">
+            <button
+              className="btn-secondary"
+              onClick={() => shareText(`Raport — ${trip.name}`, buildDayReport(trip))}
+            >
+              📤 Raport
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                completeTrip();
+                exit();
+              }}
+            >
+              Zakończ dzień
+            </button>
+          </div>
         </div>
       )}
 
@@ -144,6 +157,8 @@ export function NavigationScreen({ onExit }: Props) {
         stop={sheetStop}
         onToggleTask={(taskId, done) => sheetStop && toggleTask(sheetStop.id, taskId, done)}
         onAddTask={(text) => sheetStop && addTask(sheetStop.id, text)}
+        onTaskPhoto={(taskId, uri) => sheetStop && setTaskPhoto(sheetStop.id, taskId, uri)}
+        onSkip={(reason) => sheetStop && skipStop(sheetStop.id, reason)}
         onClose={closeSheet}
         onNext={() => {
           closeSheet();

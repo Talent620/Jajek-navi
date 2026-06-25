@@ -80,7 +80,7 @@ export function useNavigationEngine(tripId: string | null) {
       const ordered = orderedStops(trip.stops);
       for (let i = 0; i < ordered.length; i++) {
         const st = ordered[i];
-        if (st.arrived) continue;
+        if (st.arrived || st.skipped) continue;
         const d = haversine(rawFix, { lat: st.lat, lng: st.lng });
         if (d <= NAV.arrivalRadiusMeters) {
           useTripStore.getState().markArrived(st.id);
@@ -90,8 +90,8 @@ export function useNavigationEngine(tripId: string | null) {
         }
       }
 
-      // ustaw aktywny przystanek = pierwszy nieukończony
-      const nextIdx = ordered.findIndex((s) => !s.completed);
+      // ustaw aktywny przystanek = pierwszy nieukończony i niepominięty
+      const nextIdx = ordered.findIndex((s) => !s.completed && !s.skipped);
       nav.setActiveStopIndex(nextIdx === -1 ? ordered.length - 1 : nextIdx);
 
       // 5) Detekcja zjazdu z trasy → re-routing
@@ -111,7 +111,9 @@ export function useNavigationEngine(tripId: string | null) {
         const trip = useTripStore.getState().current();
         if (!trip) return;
         // Cel: pozostałe (nieukończone) przystanki w bieżącej kolejności.
-        const remainingStops = orderedStops(trip.stops).filter((s) => !s.completed);
+        const remainingStops = orderedStops(trip.stops).filter(
+          (s) => !s.completed && !s.skipped,
+        );
         if (remainingStops.length === 0) return;
         const points = [
           { lng: fix.lng, lat: fix.lat },

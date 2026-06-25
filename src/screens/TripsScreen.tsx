@@ -1,6 +1,8 @@
 // Historia / zarządzanie trasami: lista, statystyki, wybór, usuwanie.
 import { useTripStore } from '../store/tripStore';
 import { formatDistance, formatDuration, formatDateTimePl } from '../lib/format';
+import { buildDayReport } from '../lib/report';
+import { shareText } from '../services/shareService';
 import type { Trip } from '../types';
 
 interface Props {
@@ -78,6 +80,12 @@ export function TripsScreen({ onOpenPlanner }: Props) {
                   }}
                 >
                   Otwórz
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => shareText(`Raport — ${trip.name}`, buildDayReport(trip))}
+                >
+                  📤 Raport
                 </button>
                 <button
                   className="btn-secondary danger"

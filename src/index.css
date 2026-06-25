@@ -713,3 +713,172 @@ textarea {
 .trip-card-actions button {
   flex: 1;
 }
+
+/* ---------------- Update banner ---------------- */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(90deg, #1e3a8a, #2563eb);
+  color: #fff;
+  padding: 10px 14px;
+  padding-top: calc(10px + var(--safe-top));
+}
+.update-text {
+  display: flex;
+  flex-direction: column;
+}
+.update-text span {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.update-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.update-actions button {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+/* ---------------- Task photo / buttons ---------------- */
+.task-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+.task-buttons {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.task-photo-btn {
+  background: var(--bg);
+  min-width: 52px;
+}
+.task-photo-btn.has-photo {
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+.task-photo-thumb {
+  margin-top: 8px;
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.task-item {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.btn-skip {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--amber);
+}
+.complete-actions {
+  display: flex;
+  gap: 8px;
+}
+.complete-actions button {
+  flex: 1;
+}
+
+/* ---------------- Settings ---------------- */
+.settings-screen {
+  height: 100%;
+  overflow-y: auto;
+  padding: calc(16px + var(--safe-top)) 16px 24px;
+}
+.settings-screen h2 {
+  margin: 0 0 16px;
+}
+.settings-group {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  margin-bottom: 16px;
+}
+.settings-group h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 8px 0;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.setting-label {
+  display: flex;
+  flex-direction: column;
+}
+.setting-label span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.switch {
+  flex: none;
+  width: 52px;
+  height: 30px;
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  position: relative;
+  transition: background 0.2s;
+}
+.switch.on {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+}
+.switch.on .knob {
+  left: 25px;
+}
+.settings-group > button {
+  width: 100%;
+  margin: 8px 0;
+}
+.update-result {
+  background: var(--bg-3);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 8px 0;
+}
+.update-result p {
+  margin: 0 0 8px;
+}
+.update-result button {
+  width: 100%;
+}
+.about-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.about-row span {
+  color: var(--muted);
+}

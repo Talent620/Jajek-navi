@@ -20,6 +20,8 @@ export interface Stop {
   arrived: boolean; // czy kierowca dojechał (auto przy ~50 m)
   arrivedAt?: string;
   completed: boolean; // czy wszystkie zadania odhaczone
+  skipped?: boolean; // przystanek pominięty / przełożony
+  skipReason?: string; // powód pominięcia
   notes?: string; // "co tu zrobić" — instrukcja dla kierowcy
   tasks: Task[];
 }

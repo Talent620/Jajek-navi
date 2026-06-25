@@ -38,6 +38,8 @@ interface TripState {
   updateStopNotes: (stopId: string, notes: string) => void;
   reorderStops: (orderedIds: string[]) => void;
   markArrived: (stopId: string) => void;
+  skipStop: (stopId: string, reason: string) => void;
+  unskipStop: (stopId: string) => void;
 
   // --- zadania ---
   addTask: (stopId: string, text: string) => void;
@@ -179,6 +181,30 @@ export const useTripStore = create<TripState>()(
                     arrived: true,
                     arrivedAt: new Date().toISOString(),
                   })
+                : st,
+            ),
+          })),
+        ),
+
+      skipStop: (stopId, reason) =>
+        set((s) =>
+          patchCurrent(s, (t) => ({
+            ...t,
+            stops: t.stops.map((st) =>
+              st.id === stopId
+                ? { ...st, skipped: true, skipReason: reason.trim() || 'Pominięto' }
+                : st,
+            ),
+          })),
+        ),
+
+      unskipStop: (stopId) =>
+        set((s) =>
+          patchCurrent(s, (t) => ({
+            ...t,
+            stops: t.stops.map((st) =>
+              st.id === stopId
+                ? { ...st, skipped: false, skipReason: undefined }
                 : st,
             ),
           })),

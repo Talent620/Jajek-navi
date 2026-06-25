@@ -9,6 +9,8 @@ interface Props {
   stop: Stop | null;
   onToggleTask: (taskId: string, done: boolean) => void;
   onAddTask: (text: string) => void;
+  onTaskPhoto: (taskId: string, photoUri: string) => void;
+  onSkip: (reason: string) => void;
   onClose: () => void;
   onNext: () => void;
   hasNext: boolean;
@@ -18,6 +20,8 @@ export function ChecklistSheet({
   stop,
   onToggleTask,
   onAddTask,
+  onTaskPhoto,
+  onSkip,
   onClose,
   onNext,
   hasNext,
@@ -101,7 +105,12 @@ export function ChecklistSheet({
       <div className="task-list">
         {stop.tasks.length === 0 && <p className="empty">Brak zadań dla tego przystanku.</p>}
         {stop.tasks.map((t) => (
-          <TaskItem key={t.id} task={t} onToggle={(done) => onToggleTask(t.id, done)} />
+          <TaskItem
+            key={t.id}
+            task={t}
+            onToggle={(done) => onToggleTask(t.id, done)}
+            onPhoto={(uri) => onTaskPhoto(t.id, uri)}
+          />
         ))}
       </div>
 
@@ -144,6 +153,19 @@ export function ChecklistSheet({
             Zwiń
           </button>
         )}
+        <button
+          className="btn-skip"
+          onClick={() => {
+            const reason = prompt('Powód pominięcia / przełożenia przystanku:', 'Klient nieobecny');
+            if (reason !== null) {
+              onSkip(reason);
+              onClose();
+              if (hasNext) onNext();
+            }
+          }}
+        >
+          ⏭ Pomiń / przełóż przystanek
+        </button>
       </div>
     </div>
   );
