@@ -17,6 +17,8 @@ interface SettingsState {
   weather: boolean; // pokazuj pogodę
   accent: 'cyan' | 'magenta' | 'emerald' | 'amber' | 'plasma'; // motyw kolorystyczny
   sounds: boolean; // dźwięki interfejsu / gong dojazdu
+  quality: 'auto' | 'high' | 'eco'; // jakość/wydajność grafiki 3D
+  coachDone: boolean; // czy pokazano samouczek pierwszego uruchomienia
   setVoiceEnabled: (v: boolean) => void;
   setMockGps: (v: boolean) => void;
   setHighAccuracy: (v: boolean) => void;
@@ -31,6 +33,8 @@ interface SettingsState {
   setWeather: (v: boolean) => void;
   setAccent: (v: 'cyan' | 'magenta' | 'emerald' | 'amber' | 'plasma') => void;
   setSounds: (v: boolean) => void;
+  setQuality: (v: 'auto' | 'high' | 'eco') => void;
+  setCoachDone: (v: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -50,6 +54,8 @@ export const useSettingsStore = create<SettingsState>()(
       weather: true,
       accent: 'cyan',
       sounds: true,
+      quality: 'auto',
+      coachDone: false,
       setVoiceEnabled: (voiceEnabled) => set({ voiceEnabled }),
       setMockGps: (mockGps) => set({ mockGps }),
       setHighAccuracy: (highAccuracy) => set({ highAccuracy }),
@@ -64,6 +70,8 @@ export const useSettingsStore = create<SettingsState>()(
       setWeather: (weather) => set({ weather }),
       setAccent: (accent) => set({ accent }),
       setSounds: (sounds) => set({ sounds }),
+      setQuality: (quality) => set({ quality }),
+      setCoachDone: (coachDone) => set({ coachDone }),
     }),
     {
       name: 'nav-settings',

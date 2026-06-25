@@ -11,6 +11,7 @@ import { useSettingsStore } from './store/settingsStore';
 import { applyAccent } from './lib/themes';
 import { sound } from './services/soundService';
 import { Splash } from './components/Splash';
+import { Coach } from './components/Coach';
 
 type Screen = 'planner' | 'navigation' | 'trips' | 'settings';
 
@@ -38,6 +39,7 @@ export default function App() {
   return (
     <div className="app">
       <Splash />
+      <Coach />
       <OfflineBanner />
       {screen !== 'navigation' && <UpdateBanner />}
 

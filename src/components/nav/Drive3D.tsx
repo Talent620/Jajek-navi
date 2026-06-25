@@ -67,12 +67,21 @@ export function Drive3D({ legs, fix, stops, activeStopIndex, onFail }: Props) {
     const mount = mountRef.current;
     if (!mount) return;
 
-    // Kolor wg aktywnego motywu.
+    // Kolor wg aktywnego motywu + poziom jakości.
+    let quality: 'high' | 'eco' = 'high';
     try {
-      CYAN = new THREE.Color(accentThreeColor(useSettingsStore.getState().accent));
+      const st = useSettingsStore.getState();
+      CYAN = new THREE.Color(accentThreeColor(st.accent));
+      if (st.quality === 'eco') quality = 'eco';
+      else if (st.quality === 'auto') {
+        const cores = (navigator as any).hardwareConcurrency ?? 4;
+        const dpr = window.devicePixelRatio || 1;
+        quality = cores <= 4 || dpr >= 3 ? 'eco' : 'high';
+      }
     } catch {
       CYAN = new THREE.Color(0x22d3ee);
     }
+    const ECO = quality === 'eco';
 
     let renderer: THREE.WebGLRenderer;
     let composer: EffectComposer;
@@ -84,7 +93,7 @@ export function Drive3D({ legs, fix, stops, activeStopIndex, onFail }: Props) {
     }
     const W = mount.clientWidth;
     const H = mount.clientHeight;
-    const DPR = Math.min(2, window.devicePixelRatio || 1); // cap dla wydajności
+    const DPR = ECO ? 1 : Math.min(2, window.devicePixelRatio || 1); // cap dla wydajności
     renderer.setPixelRatio(DPR);
     renderer.setSize(W, H);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -107,8 +116,10 @@ export function Drive3D({ legs, fix, stops, activeStopIndex, onFail }: Props) {
     try {
       composer = new EffectComposer(renderer);
       composer.addPass(new RenderPass(scene, camera));
-      const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), 0.95, 0.6, 0.1);
-      composer.addPass(bloom);
+      if (!ECO) {
+        // bloom tylko w trybie wysokiej jakości (kosztowny na słabszych GPU)
+        composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.95, 0.6, 0.1));
+      }
       composer.addPass(new OutputPass());
     } catch {
       onFail();
@@ -176,7 +187,7 @@ export function Drive3D({ legs, fix, stops, activeStopIndex, onFail }: Props) {
     scene.add(stars);
 
     // --- cząsteczki prędkości (smugi przelatujące obok) ---
-    const SPN = 120;
+    const SPN = ECO ? 40 : 120;
     const speedGeo = new THREE.BufferGeometry();
     const spos = new Float32Array(SPN * 3);
     for (let i = 0; i < SPN; i++) {

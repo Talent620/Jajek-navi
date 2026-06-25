@@ -117,6 +117,17 @@ export function SettingsScreen() {
           value={s.sounds}
           onChange={s.setSounds}
         />
+        <label className="field-label">Jakość grafiki 3D</label>
+        <div className="mode-toggle">
+          {(['auto', 'high', 'eco'] as const).map((q) => (
+            <button key={q} className={s.quality === q ? 'active' : ''} onClick={() => s.setQuality(q)}>
+              {q === 'auto' ? 'Auto' : q === 'high' ? 'Wysoka' : 'Oszczędna'}
+            </button>
+          ))}
+        </div>
+        <button className="btn-secondary" onClick={() => s.setCoachDone(false)}>
+          ❔ Pokaż samouczek ponownie
+        </button>
       </section>
 
       <section className="settings-group">
