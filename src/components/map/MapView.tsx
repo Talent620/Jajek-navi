@@ -1,46 +1,81 @@
-// Mapa: prawdziwy Mapbox GL JS gdy jest token, inaczej schematyczny fallback.
-import { useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+// Mapa: MapLibre GL + darmowe kafle OpenFreeMap (OSM) — bez kluczy API.
+// Fallback na mapę schematyczną tylko, gdy WebGL/MapLibre się nie zainicjuje.
+import { useEffect, useRef, useState } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Fix, RouteLeg, Stop, LngLat } from '../../types';
-import { HAS_MAPBOX_TOKEN, MAPBOX_TOKEN, MAPBOX_STYLE } from '../../config';
+import { MAP_STYLE_URL } from '../../config';
 import { combinedRouteCoords } from '../../lib/navigation/offroute';
 import { SchematicMap } from './SchematicMap';
+
+// Wbudowany ciemny styl rastrowy (OSM via CARTO) — bez kluczy API, jeśli nie
+// podano własnego stylu wektorowego (VITE_MAP_STYLE).
+const DARK_RASTER_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    osmdark: {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '© OpenStreetMap, © CARTO',
+    },
+  },
+  layers: [{ id: 'osmdark', type: 'raster', source: 'osmdark' }],
+};
 
 interface Props {
   legs: RouteLeg[];
   stops: Stop[];
   start?: LngLat;
   userFix?: Fix | null;
-  follow?: boolean; // tryb nawigacji: kamera śledzi użytkownika
+  follow?: boolean;
   activeStopIndex?: number;
 }
 
 export function MapView(props: Props) {
-  if (!HAS_MAPBOX_TOKEN) {
-    return <SchematicMap {...props} />;
-  }
-  return <MapboxMap {...props} />;
+  const [failed, setFailed] = useState(false);
+  if (failed) return <SchematicMap {...props} />;
+  return <LibreMap {...props} onFail={() => setFailed(true)} />;
 }
 
-function MapboxMap({ legs, stops, start, userFix, follow, activeStopIndex }: Props) {
+function LibreMap({
+  legs,
+  stops,
+  start,
+  userFix,
+  follow,
+  activeStopIndex,
+  onFail,
+}: Props & { onFail: () => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const stopMarkersRef = useRef<mapboxgl.Marker[]>([]);
-  const startMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const stopMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const startMarkerRef = useRef<maplibregl.Marker | null>(null);
   const loadedRef = useRef(false);
 
-  // init
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: MAPBOX_STYLE,
-      center: start ? [start.lng, start.lat] : [20.4801, 53.7784],
-      zoom: 12,
-      attributionControl: false,
+    let map: maplibregl.Map;
+    try {
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style: MAP_STYLE_URL || DARK_RASTER_STYLE,
+        center: start ? [start.lng, start.lat] : [20.4801, 53.7784],
+        zoom: 12,
+        attributionControl: { compact: true },
+      });
+    } catch {
+      onFail();
+      return;
+    }
+    map.on('error', (e) => {
+      // brak sieci / styl niedostępny — pokaż schemat
+      if (!loadedRef.current && e?.error) onFail();
     });
     map.on('load', () => {
       loadedRef.current = true;
@@ -71,7 +106,7 @@ function MapboxMap({ legs, stops, start, userFix, follow, activeStopIndex }: Pro
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
     const coords = combinedRouteCoords(legs);
-    const src = map.getSource('route') as mapboxgl.GeoJSONSource | undefined;
+    const src = map.getSource('route') as maplibregl.GeoJSONSource | undefined;
     if (src) {
       src.setData({
         type: 'Feature',
@@ -80,7 +115,7 @@ function MapboxMap({ legs, stops, start, userFix, follow, activeStopIndex }: Pro
       });
     }
     if (coords.length > 1 && !follow) {
-      const b = new mapboxgl.LngLatBounds();
+      const b = new maplibregl.LngLatBounds();
       coords.forEach((c) => b.extend(c as [number, number]));
       map.fitBounds(b, { padding: 60, duration: 600, maxZoom: 15 });
     }
@@ -98,10 +133,11 @@ function MapboxMap({ legs, stops, start, userFix, follow, activeStopIndex }: Pro
       const el = document.createElement('div');
       el.className = 'map-stop-marker';
       el.textContent = String(i + 1);
-      el.style.background = s.completed ? '#22c55e' : i === activeStopIndex ? '#f59e0b' : '#ef4444';
-      const m = new mapboxgl.Marker({ element: el })
+      el.style.background =
+        s.completed || s.skipped ? '#22c55e' : i === activeStopIndex ? '#f59e0b' : '#ef4444';
+      const m = new maplibregl.Marker({ element: el })
         .setLngLat([s.lng, s.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`${s.label} — ${s.address}`))
+        .setPopup(new maplibregl.Popup({ offset: 18 }).setText(`${s.label} — ${s.address}`))
         .addTo(map);
       stopMarkersRef.current.push(m);
     });
@@ -111,20 +147,18 @@ function MapboxMap({ legs, stops, start, userFix, follow, activeStopIndex }: Pro
         const el = document.createElement('div');
         el.className = 'map-start-marker';
         el.textContent = 'S';
-        startMarkerRef.current = new mapboxgl.Marker({ element: el }).addTo(map);
+        startMarkerRef.current = new maplibregl.Marker({ element: el }).addTo(map);
       }
       startMarkerRef.current.setLngLat([start.lng, start.lat]);
     }
   };
 
-  // aktualizacja trasy / markerów
   useEffect(() => {
     drawRoute();
     drawMarkers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [legs, stops, start, activeStopIndex]);
 
-  // pozycja użytkownika + kamera follow
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loadedRef.current || !userFix) return;
@@ -132,7 +166,7 @@ function MapboxMap({ legs, stops, start, userFix, follow, activeStopIndex }: Pro
       const el = document.createElement('div');
       el.className = 'map-user-marker';
       el.innerHTML = '<div class="arrow"></div>';
-      userMarkerRef.current = new mapboxgl.Marker({ element: el }).addTo(map);
+      userMarkerRef.current = new maplibregl.Marker({ element: el }).addTo(map);
     }
     userMarkerRef.current.setLngLat([userFix.lng, userFix.lat]);
     const arrow = userMarkerRef.current.getElement().querySelector('.arrow') as HTMLElement | null;

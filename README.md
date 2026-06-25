@@ -8,10 +8,10 @@ kierowca po dojechaniu widzi „co miał tu zrobić” i odhacza zadania przycis
 **„Zrobione”**. Dane trzymane offline + historia tras. Build do APK przez
 Capacitor.
 
-> Aplikacja działa **od razu bez tokena Mapbox** — w trybie **MOCK** (mapa
-> schematyczna SVG + przykładowe trasy + symulacja jazdy), żeby dało się
-> przeklikać i przetestować całą logikę nawigacji. Po dodaniu tokena włącza
-> się prawdziwa mapa Mapbox, geokodowanie, optymalizacja i trasy.
+> **Działa od razu, w pełni — bez żadnych kluczy API.** Realna mapa OSM
+> (MapLibre + OpenStreetMap/CARTO), prawdziwe geokodowanie (Nominatim),
+> prawdziwe trasy i optymalizacja kolejności (OSRM). Nic nie trzeba
+> konfigurować — instalujesz APK i jeździsz.
 
 ---
 
@@ -41,7 +41,9 @@ narzędzi pracy w terenie:
 
 - **React 18 + TypeScript + Vite**
 - **Capacitor 6** (`@capacitor/android`) — webview → APK
-- **Mapbox GL JS** — mapa; **Directions / Optimization / Geocoding API**
+- **MapLibre GL JS** + **OpenStreetMap/CARTO** — mapa (darmowa, bez klucza)
+- **OSRM** — trasy (`/route`) i optymalizacja kolejności (`/trip`)
+- **Nominatim (OSM)** — geokodowanie adresów
 - **Zustand** (+ `persist`) — stan i trwałość danych
 - `@capacitor/geolocation` — GPS, `@capacitor-community/text-to-speech` — TTS,
   `@capacitor-community/background-geolocation` — tło, `@capacitor/preferences` —
@@ -51,30 +53,34 @@ narzędzi pracy w terenie:
 
 ```bash
 npm install
-cp .env.example .env      # opcjonalnie: wpisz token Mapbox
-npm run dev               # http://localhost:5173
+npm run dev               # http://localhost:5173 — działa bez żadnych kluczy
 ```
 
-Bez tokena aplikacja wstaje w trybie MOCK. Domyślnie włączona jest **symulacja
-GPS** (przycisk „🧪 Symulacja” w trybie nawigacji), która przejeżdża pojazdem po
-geometrii trasy — pozwala przetestować baner manewru, głos, auto-arrival,
+Żadnej konfiguracji nie trzeba — mapa, geokodowanie i trasy działają od razu
+(darmowe serwery OSM). Do testów nawigacji bez wychodzenia na drogę jest
+**symulacja GPS** (przycisk „🧪 Symulacja” w trybie nawigacji), która przejeżdża
+pojazdem po geometrii trasy — pozwala przetestować baner manewru, głos,
+auto-arrival,
 check-listę i re-routing bez wychodzenia na drogę.
 
-## Konfiguracja klucza Mapbox (sekcja 11 — bezpieczeństwo)
+## Konfiguracja (opcjonalna — domyślnie nic nie trzeba)
 
-1. Załóż konto i wygeneruj **publiczny** token (`pk.…`) na
-   <https://account.mapbox.com/access-tokens/>.
-2. `cp .env.example .env` i ustaw:
-   ```
-   VITE_MAPBOX_TOKEN=pk.twoj_token
-   VITE_MAPBOX_STYLE=mapbox://styles/mapbox/navigation-night-v1
-   ```
-3. **Nigdy nie commituj `.env`** — jest w `.gitignore`. W panelu Mapbox ustaw
-   **URL/token restrictions** dla tokena publicznego.
+Aplikacja używa **darmowych, publicznych serwerów OSM** i działa bez kluczy.
+Do produkcji / większego ruchu warto wskazać własne instancje przez `.env`
+(`src/config.ts`), bo publiczne serwery mają limity:
 
-Token czytany jest wyłącznie z `import.meta.env.VITE_MAPBOX_TOKEN`
-(`src/config.ts`) — nigdzie nie jest hardkodowany. Współrzędne i tokeny nie są
-logowane w buildzie produkcyjnym.
+```
+# wszystkie opcjonalne
+VITE_OSRM_URL=https://twoj-osrm.example.com
+VITE_NOMINATIM_URL=https://twoj-nominatim.example.com
+VITE_MAP_STYLE=https://twoj-styl-maplibre.json   # własny styl wektorowy
+VITE_UPDATE_REPO=talent620/jajek-navi
+```
+
+> **Limity publicznych serwerów:** Nominatim ~1 zapytanie/s (stąd dłuższy
+> debounce w wyszukiwarce), a `router.project-osrm.org` to serwer demo OSRM —
+> do intensywnej pracy postaw własny OSRM/Nominatim (Docker) i wskaż go w env.
+> Nie ma żadnych sekretów do ukrycia — to otwarte API OSM.
 
 ## Build APK (Android)
 
@@ -108,9 +114,8 @@ przyciskiem pobrania nowego APK. Działa jak Obtainium / F-Droid: kolejne wydani
 są podpisane **tym samym kluczem**, więc instalują się „w miejscu" (nadpisują).
 
 > Workflow: `.github/workflows/android.yml`. Uruchamia się przy pushu na branch
-> oraz ręcznie (Actions → *Build Android APK* → *Run workflow*). Mapbox token
-> można podać jako sekret repo `VITE_MAPBOX_TOKEN` (bez niego build powstaje w
-> trybie MOCK).
+> oraz ręcznie (Actions → *Build Android APK* → *Run workflow*). Build nie
+> wymaga żadnych sekretów — mapa i trasy działają na darmowych serwerach OSM.
 
 ### 🔑 Podpis (klucz DEMO — ważna uwaga bezpieczeństwa)
 
@@ -172,7 +177,7 @@ point-to-segment, interpolacja wzdłuż trasy (`geo.ts`).
 
 - [x] Kompilacja web + struktura projektu; platforma Android wygenerowana.
 - [x] Planowanie trasy ≥5 przystanków + **optymalizacja kolejności**
-      (Mapbox Optimization, fallback nearest-neighbour > 12 punktów / bez tokena).
+      (OSRM `/trip`, fallback nearest-neighbour gdy brak sieci).
 - [x] Nawigacja turn-by-turn: baner manewru, ETA/dystans/prędkość, **TTS PL**,
       **re-routing** po zjeździe z trasy (próg + 2 pomiary z rzędu).
 - [x] **Check-lista per przystanek**: auto-arrival ~50 m → bottom-sheet z notatką
@@ -214,11 +219,11 @@ point-to-segment, interpolacja wzdłuż trasy (`geo.ts`).
   `// TODO` w `locationService.ts`.
 - **Offline mapy**: prefetch i lokalny cache kafli — `// TODO`
   (`lib/offline/tileCache.ts` ma już planowanie kafli).
-- **Optymalizacja**: Mapbox Optimization v1 ma limit ~12 współrzędnych; powyżej
-  oraz bez tokena używamy heurystyki nearest-neighbour (sekcja 7).
+- **Publiczne serwery OSM mają limity** (Nominatim ~1/s, OSRM demo) — do
+  intensywnej pracy postaw własny OSRM/Nominatim i wskaż w `.env`.
+- **Brak sieci**: mapa pokazuje markery/trasę na ciemnym tle, a geokodowanie/
+  trasy mają awaryjny fallback, by aplikacja się nie wywaliła.
 - **Drag&drop kolejności**: przyciski ↑/↓ (niezawodne na dotyku); pełny drag — TODO.
-- **Mock geokodowanie** zwraca deterministyczne punkty wokół Olsztyna — tylko
-  dla trybu bez tokena.
 
 ## Uprawnienia Android (AndroidManifest.xml)
 

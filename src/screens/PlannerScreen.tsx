@@ -6,7 +6,6 @@ import { StopList } from '../components/planner/StopList';
 import { useTripStore } from '../store/tripStore';
 import { requestLocationPermission, startTracking } from '../services/locationService';
 import { formatDistance, formatDuration } from '../lib/format';
-import { HAS_MAPBOX_TOKEN } from '../config';
 import { ShiftBar } from '../components/ShiftBar';
 import { BarcodeScanner } from '../components/nav/BarcodeScanner';
 import { Collapsible } from '../components/Collapsible';
@@ -92,7 +91,6 @@ export function PlannerScreen({ onStartNavigation }: Props) {
     <div className="planner-screen">
       <div className="planner-map">
         <MapView legs={trip.legs} stops={trip.stops} start={start} />
-        {!HAS_MAPBOX_TOKEN && <div className="mock-badge">TRYB DEMO (bez mapy Mapbox)</div>}
       </div>
 
       <div className="planner-panel">

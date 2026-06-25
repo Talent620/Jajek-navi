@@ -1,7 +1,7 @@
 // Ekran ustawień: głos, GPS/symulacja, dokładność, offline, aktualizacje.
 import { useState } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
-import { APP_VERSION, HAS_MAPBOX_TOKEN, UPDATE_REPO } from '../config';
+import { APP_VERSION, UPDATE_REPO } from '../config';
 import {
   checkForUpdate,
   downloadAndInstall,
@@ -156,7 +156,11 @@ export function SettingsScreen() {
         </div>
         <div className="about-row">
           <span>Mapa</span>
-          <strong>{HAS_MAPBOX_TOKEN ? 'Mapbox (token OK)' : 'MOCK (brak tokena)'}</strong>
+          <strong>OpenStreetMap · OpenFreeMap</strong>
+        </div>
+        <div className="about-row">
+          <span>Trasy</span>
+          <strong>OSRM · Nominatim</strong>
         </div>
       </section>
     </div>

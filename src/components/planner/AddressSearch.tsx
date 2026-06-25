@@ -33,7 +33,8 @@ export function AddressSearch({ proximity, placeholder, onPick }: Props) {
       } finally {
         setLoading(false);
       }
-    }, 350);
+      // Nominatim prosi o max ~1 zapytanie/s — dłuższy debounce.
+    }, 800);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };

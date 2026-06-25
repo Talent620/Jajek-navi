@@ -11,14 +11,21 @@ export const APP_VERSION: string =
 export const UPDATE_REPO: string =
   import.meta.env.VITE_UPDATE_REPO ?? 'talent620/jajek-navi';
 
-export const MAPBOX_TOKEN: string = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
+// --- Darmowy, otwarty stos (bez kluczy API) ---
+// Mapa: MapLibre GL + OpenFreeMap (darmowe kafle OSM, bez tokena).
+// Routing/optymalizacja: OSRM. Geokodowanie: Nominatim (OSM).
+// Można nadpisać własnymi serwerami przez zmienne env.
 
-export const MAPBOX_STYLE: string =
-  import.meta.env.VITE_MAPBOX_STYLE ?? 'mapbox://styles/mapbox/navigation-night-v1';
+/** Opcjonalny URL stylu MapLibre (vector). Puste = wbudowany ciemny raster OSM. */
+export const MAP_STYLE_URL: string = import.meta.env.VITE_MAP_STYLE ?? '';
 
-/** Czy mamy realny token Mapbox? Jeśli nie — aplikacja działa w trybie mock. */
-export const HAS_MAPBOX_TOKEN: boolean =
-  MAPBOX_TOKEN.startsWith('pk.') && MAPBOX_TOKEN.length > 20;
+/** Serwer OSRM (trasy + optymalizacja). */
+export const OSRM_URL: string =
+  import.meta.env.VITE_OSRM_URL ?? 'https://router.project-osrm.org';
+
+/** Serwer Nominatim (geokodowanie OSM). */
+export const NOMINATIM_URL: string =
+  import.meta.env.VITE_NOMINATIM_URL ?? 'https://nominatim.openstreetmap.org';
 
 /** Progi nawigacji (metry / sekundy) — zebrane w jednym miejscu. */
 export const NAV = {
@@ -35,10 +42,3 @@ export const NAV = {
   /** Odrzucaj pomiary GPS o gorszej dokładności niż (metry). */
   maxAcceptableAccuracy: 50,
 } as const;
-
-if (!HAS_MAPBOX_TOKEN && import.meta.env.DEV) {
-  // Tylko w devie — nie logujemy w produkcji (sekcja 11).
-  console.warn(
-    '[config] Brak VITE_MAPBOX_TOKEN — aplikacja działa w trybie MOCK (dane przykładowe).',
-  );
-}

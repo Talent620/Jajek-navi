@@ -1,6 +1,6 @@
 {
   "name": "tomtom-plusplus-nav",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Nawigacja terenowa TomTom++ z check-listą zadań (Android, Capacitor)",
   "type": "module",
@@ -26,7 +26,7 @@
     "@capacitor/geolocation": "^6.1.0",
     "@capacitor/preferences": "^6.0.3",
     "@capacitor/share": "^6.0.4",
-    "mapbox-gl": "^3.9.0",
+    "maplibre-gl": "^4.7.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.5"
@@ -34,7 +34,6 @@
   "devDependencies": {
     "@capacitor/cli": "^6.2.0",
     "@types/geojson": "^7946.0.14",
-    "@types/mapbox-gl": "^3.4.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
