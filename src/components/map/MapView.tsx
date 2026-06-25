@@ -20,21 +20,14 @@ function rasterStyle(tiles: string[], attribution: string): maplibregl.StyleSpec
   };
 }
 
+// Pojedynczy subdomena (a.) — by URL-e były identyczne z prefetchem offline.
 const STYLES: Record<MapStyleKey, maplibregl.StyleSpecification> = {
   dark: rasterStyle(
-    [
-      'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-    ],
+    ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
     '© OpenStreetMap, © CARTO',
   ),
   light: rasterStyle(
-    [
-      'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-      'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-      'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-    ],
+    ['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
     '© OpenStreetMap, © CARTO',
   ),
   satellite: rasterStyle(

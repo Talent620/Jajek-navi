@@ -1,19 +1,11 @@
-// Tryb offline mapy — SZKIELET ARCHITEKTONICZNY (sekcja 4.6, pozycja ⬜).
-//
-// Pełny offline wymaga: (1) źródła kafli rastrowych/wektorowych z licencją na
-// cache (np. MapTiler/Protomaps), (2) prefetchu kafli wzdłuż geometrii trasy w
-// zakresie zoomów, (3) trwałego magazynu (Cache Storage API w webview lub
-// @capacitor/filesystem), (4) warstwy serwującej kafle offline w Mapbox/MapLibre
-// (transformRequest -> lokalny URI). Tu zostawiamy interfejs + TODO, by nie
-// rozdmuchiwać MVP.
-
+// Tryb offline mapy — prefetch kafli wzdłuż trasy do Cache Storage.
+// Serwowaniem offline zajmuje się Service Worker (public/sw.js). Tu liczymy
+// listę kafli korytarza trasy i pobieramy je z kontrolą współbieżności.
 import type { RouteLeg } from '../../types';
 import { combinedRouteCoords } from '../navigation/offroute';
 
-export interface TilePrefetchPlan {
-  tiles: { z: number; x: number; y: number }[];
-  estimatedBytes: number;
-}
+const CACHE = 'jajek-tiles';
+export type MapStyle = 'dark' | 'light' | 'satellite';
 
 function lngLatToTile(lng: number, lat: number, z: number) {
   const n = 2 ** z;
@@ -22,36 +14,102 @@ function lngLatToTile(lng: number, lat: number, z: number) {
   const y = Math.floor(
     ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n,
   );
-  return { z, x, y };
+  return { x: Math.max(0, Math.min(n - 1, x)), y: Math.max(0, Math.min(n - 1, y)) };
 }
 
-/** Wyznacza listę kafli pokrywających trasę (do późniejszego prefetchu). */
-export function planRouteTiles(legs: RouteLeg[], zooms = [12, 13, 14]): TilePrefetchPlan {
+// UWAGA: jeden subdomena/host, by URL-e były identyczne jak w MapView (cache hit).
+function tileUrl(style: MapStyle, z: number, x: number, y: number): string {
+  if (style === 'satellite')
+    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+  const layer = style === 'light' ? 'light_all' : 'dark_all';
+  return `https://a.basemaps.cartocdn.com/${layer}/${z}/${x}/${y}.png`;
+}
+
+export interface TilePlan {
+  urls: string[];
+  estBytes: number;
+  capped: boolean;
+}
+
+/** Kafle korytarza trasy (punkty + sąsiedzi) dla zakresu zoomów. */
+export function routeTileUrls(
+  legs: RouteLeg[],
+  style: MapStyle,
+  zooms = [11, 12, 13, 14, 15],
+  maxTiles = 1800,
+): TilePlan {
   const coords = combinedRouteCoords(legs);
   const set = new Set<string>();
-  for (const z of zooms) {
-    for (const [lng, lat] of coords) {
-      const t = lngLatToTile(lng, lat, z);
-      set.add(`${t.z}/${t.x}/${t.y}`);
-      // sąsiednie kafle dla marginesu
-      set.add(`${t.z}/${t.x + 1}/${t.y}`);
-      set.add(`${t.z}/${t.x}/${t.y + 1}`);
+  if (coords.length >= 2) {
+    for (const z of zooms) {
+      for (const [lng, lat] of coords) {
+        const t = lngLatToTile(lng, lat, z);
+        for (let dx = -1; dx <= 1; dx++)
+          for (let dy = -1; dy <= 1; dy++) {
+            set.add(tileUrl(style, z, t.x + dx, t.y + dy));
+          }
+      }
     }
   }
-  const tiles = [...set].map((s) => {
-    const [z, x, y] = s.split('/').map(Number);
-    return { z, x, y };
-  });
-  // ~15 kB / kafel (szacunek)
-  return { tiles, estimatedBytes: tiles.length * 15_000 };
+  let urls = [...set];
+  const capped = urls.length > maxTiles;
+  if (capped) urls = urls.slice(0, maxTiles); // ogranicz rozmiar pobrania
+  return { urls, estBytes: urls.length * 16_000, capped };
 }
 
-/**
- * TODO: faktyczny prefetch i zapis kafli do Cache Storage / filesystem.
- * Obecnie zwraca tylko plan (rozmiar/ilość) do pokazania w ustawieniach.
- */
-export async function prefetchRouteTiles(_legs: RouteLeg[]): Promise<TilePrefetchPlan> {
-  const plan = planRouteTiles(_legs);
-  // TODO: pobierz kafle i zapisz; podłącz transformRequest w MapView.
-  return plan;
+export interface PrefetchResult {
+  total: number;
+  ok: number;
+  failed: number;
+}
+
+/** Pobiera kafle do Cache Storage (SW serwuje je offline). */
+export async function prefetchRouteTiles(
+  legs: RouteLeg[],
+  style: MapStyle,
+  onProgress?: (done: number, total: number) => void,
+): Promise<PrefetchResult> {
+  if (typeof caches === 'undefined') return { total: 0, ok: 0, failed: 0 };
+  const { urls } = routeTileUrls(legs, style);
+  const cache = await caches.open(CACHE);
+  let done = 0;
+  let ok = 0;
+  let failed = 0;
+  let idx = 0;
+  const POOL = 6;
+
+  const worker = async () => {
+    while (idx < urls.length) {
+      const u = urls[idx++];
+      try {
+        const existing = await cache.match(u);
+        if (!existing) {
+          const res = await fetch(u, { mode: 'no-cors' });
+          await cache.put(u, res);
+        }
+        ok++;
+      } catch {
+        failed++;
+      }
+      done++;
+      onProgress?.(done, urls.length);
+    }
+  };
+  await Promise.all(Array.from({ length: POOL }, () => worker()));
+  return { total: urls.length, ok, failed };
+}
+
+export async function clearTileCache(): Promise<void> {
+  if (typeof caches === 'undefined') return;
+  await caches.delete(CACHE);
+}
+
+export async function tileCacheCount(): Promise<number> {
+  if (typeof caches === 'undefined') return 0;
+  try {
+    const cache = await caches.open(CACHE);
+    return (await cache.keys()).length;
+  } catch {
+    return 0;
+  }
 }

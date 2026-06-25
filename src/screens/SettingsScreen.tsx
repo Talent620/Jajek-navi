@@ -1,5 +1,5 @@
 // Ekran ustawień: głos, GPS/symulacja, dokładność, offline, aktualizacje.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import { APP_VERSION, UPDATE_REPO } from '../config';
 import {
@@ -7,6 +7,7 @@ import {
   downloadAndInstall,
   type UpdateInfo,
 } from '../services/updateService';
+import { clearTileCache, tileCacheCount } from '../lib/offline/tileCache';
 
 function Toggle({
   label,
@@ -36,6 +37,16 @@ export function SettingsScreen() {
   const s = useSettingsStore();
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<UpdateInfo | null>(null);
+  const [tileCount, setTileCount] = useState(0);
+
+  useEffect(() => {
+    tileCacheCount().then(setTileCount);
+  }, []);
+
+  const clearOffline = async () => {
+    await clearTileCache();
+    setTileCount(0);
+  };
 
   const check = async () => {
     setChecking(true);
@@ -134,12 +145,16 @@ export function SettingsScreen() {
             </button>
           ))}
         </div>
-        <Toggle
-          label="Cache kafli mapy (offline)"
-          hint="Szkielet — pełny offline w planach (TODO)"
-          value={s.offlineTiles}
-          onChange={s.setOfflineTiles}
-        />
+        <div className="about-row">
+          <span>Kafle offline w pamięci</span>
+          <strong>{tileCount}</strong>
+        </div>
+        <button className="btn-secondary" onClick={clearOffline} disabled={tileCount === 0}>
+          🗑 Wyczyść mapę offline
+        </button>
+        <p className="setting-hint">
+          Mapę offline pobierzesz na ekranie planowania („⬇ Pobierz mapę offline dla trasy").
+        </p>
       </section>
 
       <section className="settings-group">

@@ -16,6 +16,18 @@ export interface GeocodeResult {
   lng: number;
 }
 
+/** fetch z twardym timeoutem — bez tego wolne/niedostępne serwery OSM
+ *  zawieszają zapytanie w nieskończoność i trasa „się nie ładuje". */
+async function fetchT(url: string, opts: RequestInit = {}, ms = 9000): Promise<Response> {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 /* --------------------------- GEOCODING (Nominatim) --------------------------- */
 
 export async function geocode(
@@ -39,7 +51,7 @@ export async function geocode(
         `${proximity.lng - d},${proximity.lat + d},${proximity.lng + d},${proximity.lat - d}`,
       );
     }
-    const res = await fetch(`${NOMINATIM_URL}/search?${params.toString()}`, {
+    const res = await fetchT(`${NOMINATIM_URL}/search?${params.toString()}`, {
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
@@ -88,7 +100,7 @@ export async function optimizeOrder(
       geometries: 'geojson',
       overview: 'false',
     });
-    const res = await fetch(
+    const res = await fetchT(
       `${OSRM_URL}/trip/v1/driving/${coords}?${params.toString()}`,
     );
     if (!res.ok) throw new Error(`OSRM trip HTTP ${res.status}`);
@@ -144,7 +156,7 @@ export async function getDirections(
       steps: 'true',
       annotations: 'distance',
     });
-    const res = await fetch(
+    const res = await fetchT(
       `${OSRM_URL}/route/v1/driving/${coords}?${params.toString()}`,
     );
     if (!res.ok) throw new Error(`OSRM route HTTP ${res.status}`);

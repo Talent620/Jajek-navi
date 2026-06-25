@@ -37,6 +37,14 @@ narzędzi pracy w terenie:
 - **Raport dnia** rozszerzony o POD, pobrania, paczki, wyniki i podpis kierowcy.
 - **Tryb pracy**: kurier/dostawy lub przewóz osób.
 
+## 📴 Tryb offline mapy
+
+Na ekranie planowania (po wyznaczeniu trasy) **„⬇ Pobierz mapę offline dla
+trasy"** pobiera kafle korytarza trasy (zoom 11–15) do pamięci urządzenia.
+Service Worker (`public/sw.js`) serwuje je potem bez internetu — planujesz online,
+jedziesz offline. Zarządzanie/czyszczenie w Ustawieniach. Działa dla stylu
+ciemnego, jasnego i satelity.
+
 ## ✨ Bajery „live / z przyszłości"
 
 - **Holograficzna jazda 3D (WebGL / three.js)** — przełącznik „🚗 Jazda 3D":

@@ -43,6 +43,20 @@ export function PlannerScreen({ onStartNavigation }: Props) {
   const [lastScan, setLastScan] = useState<string | null>(null);
   const scanParcelByCode = useTripStore((s) => s.scanParcelByCode);
   const currency = useSettingsStore((s) => s.currency);
+  const mapStyle = useSettingsStore((s) => s.mapStyle);
+  const [offline, setOffline] = useState<{ done: number; total: number; done2?: boolean } | null>(null);
+
+  const downloadOfflineMap = async () => {
+    const t = useTripStore.getState().current();
+    if (!t || t.legs.length === 0) return;
+    setOffline({ done: 0, total: 0 });
+    const { prefetchRouteTiles } = await import('../lib/offline/tileCache');
+    const res = await prefetchRouteTiles(t.legs, mapStyle, (done, total) =>
+      setOffline({ done, total }),
+    );
+    setOffline({ done: res.ok, total: res.total, done2: true });
+    setTimeout(() => setOffline(null), 4000);
+  };
 
   const autoStartTried = useRef(false);
 
@@ -91,6 +105,11 @@ export function PlannerScreen({ onStartNavigation }: Props) {
         },
         () => setGpsBusy(false),
       );
+      // Bezpiecznik — nie zostawiaj „Pobieram GPS…" w nieskończoność.
+      setTimeout(() => {
+        tracker.stop();
+        setGpsBusy(false);
+      }, 12000);
     } catch {
       setGpsBusy(false);
     }
@@ -230,10 +249,23 @@ export function PlannerScreen({ onStartNavigation }: Props) {
         )}
 
         {trip.legs.length > 0 && (
-          <div className="route-summary">
-            <span>🛣 {formatDistance(trip.totalDistanceMeters)}</span>
-            <span>⏱ {formatDuration(trip.totalDurationSeconds)}</span>
-          </div>
+          <>
+            <div className="route-summary">
+              <span>🛣 {formatDistance(trip.totalDistanceMeters)}</span>
+              <span>⏱ {formatDuration(trip.totalDurationSeconds)}</span>
+            </div>
+            <button
+              className="btn-secondary offline-dl"
+              onClick={downloadOfflineMap}
+              disabled={!!offline && !offline.done2}
+            >
+              {offline
+                ? offline.done2
+                  ? `✅ Mapa offline gotowa (${offline.done} kafli)`
+                  : `⬇ Pobieram mapę… ${offline.done}/${offline.total || '…'}`
+                : '⬇ Pobierz mapę offline dla trasy'}
+            </button>
+          </>
         )}
 
         {(parcelsTotal > 0 || codTotal > 0) && (
