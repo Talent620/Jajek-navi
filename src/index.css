@@ -1525,3 +1525,7 @@ h2 { letter-spacing: 0.5px; }
   height: 100%;
   display: block;
 }
+
+/* Drive3D — holograficzny widok WebGL */
+.drive3d { width: 100%; height: 100%; display: block; }
+.drive3d canvas { display: block; width: 100% !important; height: 100% !important; }

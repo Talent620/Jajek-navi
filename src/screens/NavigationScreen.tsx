@@ -10,6 +10,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useNavigationEngine } from '../lib/navigation/useNavigationEngine';
 import { Speedometer } from '../components/nav/Speedometer';
 import { DrivingView } from '../components/nav/DrivingView';
+import { Drive3D } from '../components/nav/Drive3D';
 import { WeatherChip } from '../components/WeatherChip';
 import { Confetti } from '../components/Confetti';
 import { buildDayReport } from '../lib/report';
@@ -48,6 +49,7 @@ export function NavigationScreen({ onExit }: Props) {
 
   const keepAwake = useSettingsStore((s) => s.keepAwake);
   const [view, setView] = useState<'map' | 'drive'>('map');
+  const [webglFailed, setWebglFailed] = useState(false);
 
   // Aktywuj silnik nawigacji (efekt, nie podczas renderu).
   useEffect(() => {
@@ -123,7 +125,17 @@ export function NavigationScreen({ onExit }: Props) {
         />
         {view === 'drive' && (
           <div className="driving-overlay">
-            <DrivingView legs={trip.legs} fix={fix} />
+            {webglFailed ? (
+              <DrivingView legs={trip.legs} fix={fix} />
+            ) : (
+              <Drive3D
+                legs={trip.legs}
+                fix={fix}
+                stops={trip.stops}
+                activeStopIndex={activeStopIndex}
+                onFail={() => setWebglFailed(true)}
+              />
+            )}
           </div>
         )}
       </div>

@@ -39,9 +39,11 @@ narzędzi pracy w terenie:
 
 ## ✨ Bajery „live / z przyszłości"
 
-- **Wizualizacja jazdy 3D** (przełącznik „🚗 Jazda 3D") — widok z perspektywy
-  kierowcy: realna geometria trasy rzutowana w 3D, świecąca wstęga drogi,
-  przepływające chevrony pasa reagujące na prędkość, pulsujący pojazd.
+- **Holograficzna jazda 3D (WebGL / three.js)** — przełącznik „🚗 Jazda 3D":
+  prawdziwy świat 3D, trasa jako świecąca energetyczna wstęga nad neonową
+  siatką, kamera-pościg lecąca po trasie, pulsy energii płynące po drodze,
+  pylony 3D przy przystankach (z numerami), pole gwiazd, dynamiczne FOV od
+  prędkości. Fallback 2D (canvas), gdy brak WebGL.
 - **Prędkościomierz HUD** (neonowy łuk) na ekranie nawigacji.
 - **Pogoda w celu** (Open-Meteo, bez klucza) — ikona + temperatura następnego stopu.
 - **Najbliższe POI** (paliwo / parking / jedzenie / WC / bankomat) z OpenStreetMap
