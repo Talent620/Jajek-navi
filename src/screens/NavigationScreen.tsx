@@ -1,5 +1,5 @@
 // Pełnoekranowa nawigacja: mapa follow + baner manewru + statystyki + check-lista.
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { MapView } from '../components/map/MapView';
 import { ManeuverBanner } from '../components/nav/ManeuverBanner';
 import { NavStats } from '../components/nav/NavStats';
@@ -10,7 +10,10 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useNavigationEngine } from '../lib/navigation/useNavigationEngine';
 import { Speedometer } from '../components/nav/Speedometer';
 import { DrivingView } from '../components/nav/DrivingView';
-import { Drive3D } from '../components/nav/Drive3D';
+// three.js ładowany leniwie — wchodzi do paczki dopiero przy widoku 3D.
+const Drive3D = lazy(() =>
+  import('../components/nav/Drive3D').then((m) => ({ default: m.Drive3D })),
+);
 import { WeatherChip } from '../components/WeatherChip';
 import { Confetti } from '../components/Confetti';
 import { buildDayReport } from '../lib/report';
@@ -128,13 +131,15 @@ export function NavigationScreen({ onExit }: Props) {
             {webglFailed ? (
               <DrivingView legs={trip.legs} fix={fix} />
             ) : (
-              <Drive3D
-                legs={trip.legs}
-                fix={fix}
-                stops={trip.stops}
-                activeStopIndex={activeStopIndex}
-                onFail={() => setWebglFailed(true)}
-              />
+              <Suspense fallback={<div className="drive3d-loading">Ładowanie widoku 3D…</div>}>
+                <Drive3D
+                  legs={trip.legs}
+                  fix={fix}
+                  stops={trip.stops}
+                  activeStopIndex={activeStopIndex}
+                  onFail={() => setWebglFailed(true)}
+                />
+              </Suspense>
             )}
           </div>
         )}
