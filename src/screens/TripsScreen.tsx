@@ -3,6 +3,7 @@ import { useTripStore } from '../store/tripStore';
 import { formatDistance, formatDuration, formatDateTimePl } from '../lib/format';
 import { buildDayReport } from '../lib/report';
 import { shareText } from '../services/shareService';
+import { useSettingsStore } from '../store/settingsStore';
 import type { Trip } from '../types';
 
 interface Props {
@@ -83,7 +84,15 @@ export function TripsScreen({ onOpenPlanner }: Props) {
                 </button>
                 <button
                   className="btn-secondary"
-                  onClick={() => shareText(`Raport — ${trip.name}`, buildDayReport(trip))}
+                  onClick={() =>
+                    shareText(
+                      `Raport — ${trip.name}`,
+                      buildDayReport(trip, {
+                        driverName: useSettingsStore.getState().driverName,
+                        currency: useSettingsStore.getState().currency,
+                      }),
+                    )
+                  }
                 >
                   📤 Raport
                 </button>

@@ -8,11 +8,17 @@ interface SettingsState {
   highAccuracy: boolean;
   offlineTiles: boolean; // cache kafli mapy (scaffold, sekcja 4.6)
   autoCheckUpdates: boolean; // automatyczne sprawdzanie aktualizacji APK
+  currency: string; // waluta pobrań (COD)
+  driverName: string; // podpis na raportach
+  mode: 'courier' | 'passenger'; // tryb pracy busiarza
   setVoiceEnabled: (v: boolean) => void;
   setMockGps: (v: boolean) => void;
   setHighAccuracy: (v: boolean) => void;
   setOfflineTiles: (v: boolean) => void;
   setAutoCheckUpdates: (v: boolean) => void;
+  setCurrency: (v: string) => void;
+  setDriverName: (v: string) => void;
+  setMode: (v: 'courier' | 'passenger') => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -23,11 +29,17 @@ export const useSettingsStore = create<SettingsState>()(
       highAccuracy: true,
       offlineTiles: false,
       autoCheckUpdates: true,
+      currency: 'PLN',
+      driverName: '',
+      mode: 'courier',
       setVoiceEnabled: (voiceEnabled) => set({ voiceEnabled }),
       setMockGps: (mockGps) => set({ mockGps }),
       setHighAccuracy: (highAccuracy) => set({ highAccuracy }),
       setOfflineTiles: (offlineTiles) => set({ offlineTiles }),
       setAutoCheckUpdates: (autoCheckUpdates) => set({ autoCheckUpdates }),
+      setCurrency: (currency) => set({ currency }),
+      setDriverName: (driverName) => set({ driverName }),
+      setMode: (mode) => set({ mode }),
     }),
     {
       name: 'nav-settings',

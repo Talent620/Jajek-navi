@@ -15,6 +15,28 @@ Capacitor.
 
 ---
 
+## 🚚 Funkcje „busiarza" (last-mile / field service)
+
+Na bazie researchu realnych potrzeb kuriera/serwisanta dołożono pełny zestaw
+narzędzi pracy w terenie:
+
+- **Proof of Delivery (POD)** na przystanku: **podpis odbiorcy** (rysik/palec na
+  ekranie), **zdjęcie-dowód**, **imię odbiorcy**, **wynik dostawy**
+  (Dostarczono / Częściowo / Nieudane z powodem).
+- **Skaner kodów kreskowych/QR** przesyłek (natywny `BarcodeDetector` + kamera,
+  fallback ręczny): **skan załadunku** (sprawdź, czy wszystkie paczki na
+  pokładzie) oraz skan przy doręczeniu.
+- **Paczki per przystanek** (numer/kod, opis, status skanu).
+- **Pobranie (COD)** — kwota do pobrania, oznaczenie „pobrane", **suma pobrań**
+  na żywo i w raporcie; konfigurowalna waluta (PLN/EUR/GBP/CZK/USD).
+- **Okna czasowe** doręczenia (od–do) na przystanku.
+- **Szybki kontakt** z klientem: **zadzwoń** / **SMS** jednym dotykiem.
+- **Czas pracy kierowcy** (zmiana / jazda / przerwy) z **przypomnieniem o
+  przerwie** po 4,5 h ciągłej jazdy.
+- **Pominięcie/przełożenie** przystanku z powodem.
+- **Raport dnia** rozszerzony o POD, pobrania, paczki, wyniki i podpis kierowcy.
+- **Tryb pracy**: kurier/dostawy lub przewóz osób.
+
 ## Stack
 
 - **React 18 + TypeScript + Vite**

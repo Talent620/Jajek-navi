@@ -52,6 +52,39 @@ export function SettingsScreen() {
       <h2>Ustawienia</h2>
 
       <section className="settings-group">
+        <h3>Profil kierowcy</h3>
+        <label className="field-label">Imię i nazwisko (na raporty)</label>
+        <input
+          value={s.driverName}
+          onChange={(e) => s.setDriverName(e.target.value)}
+          placeholder="np. Jan Kowalski"
+        />
+        <label className="field-label">Waluta pobrań (COD)</label>
+        <select value={s.currency} onChange={(e) => s.setCurrency(e.target.value)}>
+          <option value="PLN">PLN (zł)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="CZK">CZK</option>
+          <option value="USD">USD ($)</option>
+        </select>
+        <label className="field-label">Tryb pracy</label>
+        <div className="mode-toggle">
+          <button
+            className={s.mode === 'courier' ? 'active' : ''}
+            onClick={() => s.setMode('courier')}
+          >
+            📦 Kurier / dostawy
+          </button>
+          <button
+            className={s.mode === 'passenger' ? 'active' : ''}
+            onClick={() => s.setMode('passenger')}
+          >
+            🧍 Przewóz osób
+          </button>
+        </div>
+      </section>
+
+      <section className="settings-group">
         <h3>Nawigacja</h3>
         <Toggle
           label="Prowadzenie głosowe"

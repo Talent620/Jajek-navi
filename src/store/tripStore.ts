@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { capacitorStorage } from '../services/storageService';
-import type { Stop, Task, Trip, LngLat } from '../types';
+import type { Stop, Task, Trip, LngLat, Parcel, DeliveryOutcome } from '../types';
 import {
   getDirections,
   optimizeOrder,
@@ -40,6 +40,20 @@ interface TripState {
   markArrived: (stopId: string) => void;
   skipStop: (stopId: string, reason: string) => void;
   unskipStop: (stopId: string) => void;
+  updateStop: (stopId: string, patch: Partial<Stop>) => void;
+
+  // --- POD / kontakt / pobranie (busiarz) ---
+  setStopContact: (stopId: string, contactName: string, phone: string) => void;
+  setStopWindow: (stopId: string, start: string, end: string) => void;
+  setStopCod: (stopId: string, amount: number | undefined) => void;
+  collectCod: (stopId: string, collected: boolean) => void;
+  addParcel: (stopId: string, code: string, label?: string) => void;
+  removeParcel: (stopId: string, parcelId: string) => void;
+  setParcelScanned: (stopId: string, parcelId: string, scanned: boolean) => void;
+  scanParcelByCode: (code: string) => { stopId: string; label: string } | null;
+  setRecipient: (stopId: string, recipientName: string) => void;
+  setSignature: (stopId: string, dataUrl: string) => void;
+  setOutcome: (stopId: string, outcome: DeliveryOutcome, reason?: string) => void;
 
   // --- zadania ---
   addTask: (stopId: string, text: string) => void;
@@ -58,6 +72,8 @@ interface TripState {
 }
 
 function recomputeCompletion(stop: Stop): Stop {
+  // Dostawa oznaczona jako 'delivered' kończy przystanek niezależnie od zadań.
+  if (stop.outcome === 'delivered') return { ...stop, completed: true };
   const completed =
     stop.tasks.length > 0 ? stop.tasks.every((t) => t.done) : stop.arrived;
   return { ...stop, completed };
@@ -205,6 +221,124 @@ export const useTripStore = create<TripState>()(
             stops: t.stops.map((st) =>
               st.id === stopId
                 ? { ...st, skipped: false, skipReason: undefined }
+                : st,
+            ),
+          })),
+        ),
+
+      updateStop: (stopId, patch) =>
+        set((s) =>
+          patchCurrent(s, (t) => ({
+            ...t,
+            stops: t.stops.map((st) =>
+              st.id === stopId ? recomputeCompletion({ ...st, ...patch }) : st,
+            ),
+          })),
+        ),
+
+      setStopContact: (stopId, contactName, phone) =>
+        get().updateStop(stopId, { contactName, phone }),
+
+      setStopWindow: (stopId, windowStart, windowEnd) =>
+        get().updateStop(stopId, { windowStart, windowEnd }),
+
+      setStopCod: (stopId, codAmount) =>
+        get().updateStop(stopId, { codAmount }),
+
+      collectCod: (stopId, codCollected) =>
+        get().updateStop(stopId, { codCollected }),
+
+      addParcel: (stopId, code, label) =>
+        set((s) =>
+          patchCurrent(s, (t) => ({
+            ...t,
+            stops: t.stops.map((st) =>
+              st.id === stopId
+                ? {
+                    ...st,
+                    parcels: [
+                      ...(st.parcels ?? []),
+                      {
+                        id: uid('pcl_'),
+                        code: code.trim(),
+                        label: label?.trim() || undefined,
+                        scanned: false,
+                      } as Parcel,
+                    ],
+                  }
+                : st,
+            ),
+          })),
+        ),
+
+      removeParcel: (stopId, parcelId) =>
+        set((s) =>
+          patchCurrent(s, (t) => ({
+            ...t,
+            stops: t.stops.map((st) =>
+              st.id === stopId
+                ? { ...st, parcels: (st.parcels ?? []).filter((p) => p.id !== parcelId) }
+                : st,
+            ),
+          })),
+        ),
+
+      setParcelScanned: (stopId, parcelId, scanned) =>
+        set((s) =>
+          patchCurrent(s, (t) => ({
+            ...t,
+            stops: t.stops.map((st) =>
+              st.id === stopId
+                ? {
+                    ...st,
+                    parcels: (st.parcels ?? []).map((p) =>
+                      p.id === parcelId
+                        ? { ...p, scanned, scannedAt: scanned ? new Date().toISOString() : undefined }
+                        : p,
+                    ),
+                  }
+                : st,
+            ),
+          })),
+        ),
+
+      scanParcelByCode: (code) => {
+        const trip = get().current();
+        if (!trip) return null;
+        const norm = code.trim();
+        for (const st of trip.stops) {
+          const pcl = (st.parcels ?? []).find((p) => p.code === norm);
+          if (pcl) {
+            get().setParcelScanned(st.id, pcl.id, true);
+            return { stopId: st.id, label: st.label };
+          }
+        }
+        return null;
+      },
+
+      setRecipient: (stopId, recipientName) =>
+        get().updateStop(stopId, { recipientName }),
+
+      setSignature: (stopId, signatureDataUrl) =>
+        get().updateStop(stopId, { signatureDataUrl }),
+
+      setOutcome: (stopId, outcome, outcomeReason) =>
+        set((s) =>
+          patchCurrent(s, (t) => ({
+            ...t,
+            stops: t.stops.map((st) =>
+              st.id === stopId
+                ? {
+                    ...st,
+                    outcome,
+                    outcomeReason,
+                    // wynik 'failed' traktuj jak pominięcie dla postępu trasy
+                    skipped: outcome === 'failed' ? true : st.skipped,
+                    skipReason:
+                      outcome === 'failed'
+                        ? outcomeReason || 'Doręczenie nieudane'
+                        : st.skipReason,
+                  }
                 : st,
             ),
           })),

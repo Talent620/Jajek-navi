@@ -1,6 +1,6 @@
 {
   "name": "tomtom-plusplus-nav",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Nawigacja terenowa TomTom++ z check-listą zadań (Android, Capacitor)",
   "type": "module",

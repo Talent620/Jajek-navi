@@ -70,6 +70,17 @@ export function NavigationScreen({ onExit }: Props) {
   const stopsDone = ordered.filter((s) => s.completed || s.skipped).length;
   const tasksTotal = ordered.reduce((a, s) => a + s.tasks.length, 0);
   const tasksDone = ordered.reduce((a, s) => a + s.tasks.filter((t) => t.done).length, 0);
+  const parcelsTotal = ordered.reduce((a, s) => a + (s.parcels?.length ?? 0), 0);
+  const parcelsScanned = ordered.reduce(
+    (a, s) => a + (s.parcels?.filter((p) => p.scanned).length ?? 0),
+    0,
+  );
+  const codTotal = ordered.reduce((a, s) => a + (s.codAmount ?? 0), 0);
+  const codCollected = ordered.reduce(
+    (a, s) => a + (s.codCollected ? s.codAmount ?? 0 : 0),
+    0,
+  );
+  const currency = useSettingsStore.getState().currency;
 
   const sheetStop = ordered.find((s) => s.id === sheetStopId) ?? null;
   const nextStop =
@@ -128,6 +139,11 @@ export function NavigationScreen({ onExit }: Props) {
         stopsTotal={ordered.length}
         tasksDone={tasksDone}
         tasksTotal={tasksTotal}
+        parcelsScanned={parcelsScanned}
+        parcelsTotal={parcelsTotal}
+        codCollected={codCollected}
+        codTotal={codTotal}
+        currency={currency}
       />
 
       {allDone && !sheetStop && (
@@ -136,7 +152,15 @@ export function NavigationScreen({ onExit }: Props) {
           <div className="complete-actions">
             <button
               className="btn-secondary"
-              onClick={() => shareText(`Raport — ${trip.name}`, buildDayReport(trip))}
+              onClick={() =>
+                shareText(
+                  `Raport — ${trip.name}`,
+                  buildDayReport(trip, {
+                    driverName: useSettingsStore.getState().driverName,
+                    currency,
+                  }),
+                )
+              }
             >
               📤 Raport
             </button>

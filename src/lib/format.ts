@@ -33,6 +33,23 @@ export function formatSpeed(metersPerSecond: number | null | undefined): string 
   return `${Math.round(metersPerSecond * 3.6)} km/h`;
 }
 
+export function formatMoney(amount: number, currency = 'PLN'): string {
+  if (!isFinite(amount)) return '—';
+  try {
+    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
+
+export function formatClock(seconds: number): string {
+  if (!isFinite(seconds) || seconds < 0) seconds = 0;
+  const total = Math.floor(seconds);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  return `${h}:${String(m).padStart(2, '0')}`;
+}
+
 export function formatDateTimePl(iso: string): string {
   try {
     const d = new Date(iso);

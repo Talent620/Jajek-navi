@@ -10,6 +10,18 @@ export interface Task {
   photoUri?: string; // opcjonalne zdjęcie jako dowód wykonania
 }
 
+/** Paczka / przesyłka przypięta do przystanku (POD + skan). */
+export interface Parcel {
+  id: string;
+  code: string; // kod kreskowy / numer przesyłki
+  label?: string; // opis (np. "Karton 30x20")
+  scanned: boolean; // czy zeskanowana (załadunek / doręczenie)
+  scannedAt?: string;
+}
+
+/** Wynik wizyty na przystanku (POD). */
+export type DeliveryOutcome = 'delivered' | 'failed' | 'partial';
+
 export interface Stop {
   id: string;
   label: string; // nazwa klienta / punktu
@@ -24,6 +36,25 @@ export interface Stop {
   skipReason?: string; // powód pominięcia
   notes?: string; // "co tu zrobić" — instrukcja dla kierowcy
   tasks: Task[];
+
+  // --- Kontakt z klientem (zadzwoń/SMS przed dojazdem) ---
+  contactName?: string;
+  phone?: string;
+
+  // --- Okno czasowe doręczenia ---
+  windowStart?: string; // "HH:MM"
+  windowEnd?: string; // "HH:MM"
+
+  // --- Pobranie (COD) ---
+  codAmount?: number; // kwota do pobrania
+  codCollected?: boolean; // czy pobrano
+
+  // --- Proof of Delivery ---
+  parcels?: Parcel[];
+  recipientName?: string; // kto odebrał
+  signatureDataUrl?: string; // podpis odbiorcy
+  outcome?: DeliveryOutcome; // wynik wizyty
+  outcomeReason?: string; // powód nieudanej/częściowej dostawy
 }
 
 export interface ManeuverStep {

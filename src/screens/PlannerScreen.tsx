@@ -7,6 +7,10 @@ import { useTripStore } from '../store/tripStore';
 import { requestLocationPermission, startTracking } from '../services/locationService';
 import { formatDistance, formatDuration } from '../lib/format';
 import { HAS_MAPBOX_TOKEN } from '../config';
+import { ShiftBar } from '../components/ShiftBar';
+import { BarcodeScanner } from '../components/nav/BarcodeScanner';
+import { formatMoney } from '../lib/format';
+import { useSettingsStore } from '../store/settingsStore';
 
 interface Props {
   onStartNavigation: () => void;
@@ -32,6 +36,10 @@ export function PlannerScreen({ onStartNavigation }: Props) {
   const startTrip = useTripStore((s) => s.startTrip);
 
   const [gpsBusy, setGpsBusy] = useState(false);
+  const [loadScan, setLoadScan] = useState(false);
+  const [lastScan, setLastScan] = useState<string | null>(null);
+  const scanParcelByCode = useTripStore((s) => s.scanParcelByCode);
+  const currency = useSettingsStore((s) => s.currency);
 
   // Utwórz trasę jeśli żadnej nie ma.
   useEffect(() => {
@@ -74,6 +82,7 @@ export function PlannerScreen({ onStartNavigation }: Props) {
       </div>
 
       <div className="planner-panel">
+        <ShiftBar />
         <input
           className="trip-name"
           value={trip.name}
@@ -109,7 +118,29 @@ export function PlannerScreen({ onStartNavigation }: Props) {
         </section>
 
         <section className="planner-section">
-          <h3>Przystanki ({trip.stops.length})</h3>
+          <div className="section-head-row">
+            <h3>Przystanki ({trip.stops.length})</h3>
+            {trip.stops.some((s) => (s.parcels?.length ?? 0) > 0) && (
+              <button className="btn-scan" onClick={() => setLoadScan(true)}>
+                📷 Skanuj załadunek
+              </button>
+            )}
+          </div>
+          {(() => {
+            const parcels = trip.stops.reduce((a, s) => a + (s.parcels?.length ?? 0), 0);
+            const scanned = trip.stops.reduce(
+              (a, s) => a + (s.parcels?.filter((p) => p.scanned).length ?? 0),
+              0,
+            );
+            const cod = trip.stops.reduce((a, s) => a + (s.codAmount ?? 0), 0);
+            if (parcels === 0 && cod === 0) return null;
+            return (
+              <div className="load-summary">
+                {parcels > 0 && <span>📦 {scanned}/{parcels} zeskanowane</span>}
+                {cod > 0 && <span>💰 {formatMoney(cod, currency)} do pobrania</span>}
+              </div>
+            );
+          })()}
           <StopList
             stops={trip.stops}
             onMove={reorderStops}
@@ -157,6 +188,20 @@ export function PlannerScreen({ onStartNavigation }: Props) {
           </button>
         </div>
       </div>
+
+      {loadScan && (
+        <BarcodeScanner
+          onClose={() => {
+            setLoadScan(false);
+            setLastScan(null);
+          }}
+          onDetected={(code) => {
+            const res = scanParcelByCode(code);
+            setLastScan(res ? `✓ ${code} → ${res.label}` : `✗ ${code} — nieznany kod`);
+          }}
+        />
+      )}
+      {loadScan && lastScan && <div className="scan-toast">{lastScan}</div>}
     </div>
   );
 }
